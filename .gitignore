@@ -142,3 +142,4 @@ docs/.vitepress/cache
 node_modules/
 ref/
 ml-engineering/
+.temp/

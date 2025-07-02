@@ -1,3 +1,7 @@
+---
+title: README
+createTime: 2025/07/03 00:05:24
+---
 # Fault Tolerance
 
 Regardless of whether you own the ML training hardware or renting it by the hour, in this ever speeding up domain of ML, finishing the training in a timely matter is important. As such if while you were asleep one of the GPUs failed or the checkpoint storage run out of space which led to your training crashing, you'd have discovered upon waking that many training hours were lost.

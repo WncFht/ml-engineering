@@ -1,3 +1,7 @@
+---
+title: training-loss-patterns
+createTime: 2025/07/03 00:05:24
+---
 # Understanding Training Loss Patterns
 
 Training loss plot is similar to the heart beat pattern - there is the good, the bad and you-should-worry one. After studying many training loss trajectories one develops an intuition to explain various loss behaviors during one's training and how to act on those.

@@ -11,13 +11,14 @@ function getItems(dir) {
       .map(file => {
         const fullPath = join(fullDir, file)
         const stat = statSync(fullPath)
-        const link = join('/', dir, file).replace(/\\/g, '/').replace(/\.md$/, '')
+        const link = join('/notes', dir, file).replace(/\\/g, '/').replace(/\.md$/, '')
 
         if (stat.isDirectory()) {
           const items = getItems(join(dir, file))
           if (items.length === 0) return null
           const indexFile = readdirSync(fullPath).find(f => f.toLowerCase() === 'readme.md' || f.toLowerCase() === 'index.md')
-          const itemLink = indexFile ? join('/', dir, file, indexFile).replace(/\\/g, '/').replace(/\.md$/, '') : undefined
+          // For directories with README.md, link to the directory root
+          const itemLink = indexFile ? join('/notes', dir, file).replace(/\\/g, '/') + '/' : undefined
           return {
             text: formatTitle(file),
             collapsed: true,
@@ -51,27 +52,33 @@ function formatTitle(title) {
     .replace(/\b\w/g, char => char.toUpperCase())
 }
 
+// Generate all top-level sections
+const sections = readdirSync(NOTES_ROOT)
+  .filter(file => {
+    const fullPath = join(NOTES_ROOT, file)
+    return statSync(fullPath).isDirectory()
+  })
+  .map(dir => {
+    const indexFile = readdirSync(join(NOTES_ROOT, dir)).find(f => f.toLowerCase() === 'readme.md' || f.toLowerCase() === 'index.md')
+    const link = `/notes/${dir}/`
+    return {
+      text: formatTitle(dir),
+      collapsed: true,
+      items: getItems(dir),
+      link: link,
+    }
+  })
+
 export default definePlumeNotesConfig({
   dir: 'notes',
-  link: '/',
-  notes: readdirSync(NOTES_ROOT)
-    .filter(file => {
-      const fullPath = join(NOTES_ROOT, file)
-      return statSync(fullPath).isDirectory()
-    })
-    .map(dir => {
-      const indexFile = readdirSync(join(NOTES_ROOT, dir)).find(f => f.toLowerCase() === 'readme.md' || f.toLowerCase() === 'index.md')
-      const link = indexFile ? `/${dir}/${indexFile.replace(/\.md$/, '')}` : `/${dir}/`
-      return {
-        text: formatTitle(dir),
-        dir,
-        link: link,
-        sidebar: [
-          {
-            text: formatTitle(dir),
-            items: getItems(dir),
-          },
-        ],
-      }
-    }),
+  link: '/notes/',
+  notes: [
+    {
+      text: 'Machine Learning Engineering',
+      dir: '',
+      link: '/notes/',
+      // This sidebar will be used for ALL pages under /notes/
+      sidebar: sections,
+    },
+  ],
 }) 

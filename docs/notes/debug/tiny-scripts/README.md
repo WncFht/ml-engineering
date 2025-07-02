@@ -1,3 +1,7 @@
+---
+title: README
+createTime: 2025/07/03 00:05:24
+---
 # A Back up of scripts
 
 This is a backup of scripts discussed in [Faster debug and development with tiny models, tokenizers and datasets](../make-tiny-models-tokenizers-datasets.md).

@@ -1,3 +1,7 @@
+---
+title: Compute
+createTime: 2025/07/03 00:05:24
+---
 # Compute
 
 1. **[Accelerator](accelerator)** - the work horses of ML - GPUs, TPUs, IPUs, FPGAs, HPUs, QPUs, RDUs (WIP)

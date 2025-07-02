@@ -1,3 +1,7 @@
+---
+title: hparams
+createTime: 2025/07/03 00:05:24
+---
 # Selecting Training Hyper-Parameters And Model Initializations
 
 The easiest way to find a good hparam and model init starter set is to steal it from a similar training that you know has succeeded. Here is a [collection of public training LLM/VLM logbooks](../resources/README.md#publicly-available-training-llmvlm-logbooks) to get you started. The other common source is papers if they disclose that information. You can also try to reach out to the authors and ask them for these details if they didn't publish it.

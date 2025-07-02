@@ -1,3 +1,7 @@
+---
+title: README
+createTime: 2025/07/03 00:05:24
+---
 # Accelerators
 
 Compute accelerators are the workhorses of the ML training. At the beginning there were just GPUs. But now there are also TPUs, IPUs, FPGAs, HPUs, QPUs, RDUs and more are being invented.

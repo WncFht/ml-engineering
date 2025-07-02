@@ -1,3 +1,7 @@
+---
+title: performance
+createTime: 2025/07/03 00:05:24
+---
 # SLURM Performance
 
 Here you will find discussions of SLURM-specific settings that impact performance.

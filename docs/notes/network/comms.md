@@ -1,3 +1,7 @@
+---
+title: comms
+createTime: 2025/07/03 00:05:24
+---
 # Communication Patterns
 
 The intention of this chapter is not to show code examples and explain APIs for which there are many tutorials, but to have excellent visuals that explain how the various types of communication patterns work.

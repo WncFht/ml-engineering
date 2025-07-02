@@ -1,3 +1,7 @@
+---
+title: make-tiny-models-tokenizers-datasets
+createTime: 2025/07/03 00:05:24
+---
 # Faster debug and development with tiny models, tokenizers and datasets
 
 If you're debugging problems and develop with full sized models and tokenizers you're likely not working in a very efficient way. Not only it's much more difficult to solve problem, the amount of waiting to get the program to restart and to get to the desirable point can be huge - and cumulatively this can be a huge drain on one's motivation and productivity, not talking about the resolution taking much longer, if at all.

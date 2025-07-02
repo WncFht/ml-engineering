@@ -1,3 +1,7 @@
+---
+title: Inference
+createTime: 2025/07/03 00:05:24
+---
 # Inference
 
 XXX: this chapter is under construction - some sections are complete, some are still starting out, many are yet to be started, but there are already enough of useful sections completed to make it a good reading.

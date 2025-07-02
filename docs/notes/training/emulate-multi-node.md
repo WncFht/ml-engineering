@@ -1,3 +1,7 @@
+---
+title: emulate-multi-node
+createTime: 2025/07/03 00:05:24
+---
 # Emulate a multi-node setup using just a single node
 
 The goal is to emulate a 2-node environment using a single node with 2 GPUs (for testing purposes). This, of course, can be further expanded to [larger set ups](#larger-set-ups).

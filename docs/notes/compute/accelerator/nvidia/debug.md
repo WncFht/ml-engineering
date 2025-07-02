@@ -1,3 +1,7 @@
+---
+title: debug
+createTime: 2025/07/03 00:05:24
+---
 # Troubleshooting NVIDIA GPUs
 
 ## Glossary

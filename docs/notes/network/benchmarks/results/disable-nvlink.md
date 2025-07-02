@@ -1,3 +1,7 @@
+---
+title: disable-nvlink
+createTime: 2025/07/03 00:05:24
+---
 # Disabling NVLink Benchmark
 
 Let's compare the training of a gpt2 language model training over a small sample of wikitext.

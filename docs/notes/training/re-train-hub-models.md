@@ -1,3 +1,7 @@
+---
+title: re-train-hub-models
+createTime: 2025/07/03 00:05:24
+---
 # Re-train HF Hub Models From Scratch Using Finetuning Examples
 
 HF Transformers has awesome finetuning examples  https://github.com/huggingface/transformers/tree/main/examples/pytorch, that cover pretty much any modality and these examples work out of box.

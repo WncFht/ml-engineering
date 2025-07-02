@@ -1,3 +1,7 @@
+---
+title: contributors
+createTime: 2025/07/03 00:05:24
+---
 # Contributors
 
 Multiple contributors kindly helped to improve these ever improving and expanding notes.

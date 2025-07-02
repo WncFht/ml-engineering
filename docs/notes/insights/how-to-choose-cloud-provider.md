@@ -1,3 +1,7 @@
+---
+title: how-to-choose-cloud-provider
+createTime: 2025/07/03 00:05:24
+---
 # How to Choose a Cloud Provider
 
 Having used multiple compute clouds over long and short terms, and participating in many "discovery" calls, I've learned that it's absolutely crucial to approach the cloud choosing process with an utmost care and dedication. Especially for the long term contracts - you may end up in a 3-year lock-in where you pay millions of dollars and end up having a terrible experience and no way to get out of the contract.

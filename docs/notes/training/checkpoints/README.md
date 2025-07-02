@@ -1,3 +1,7 @@
+---
+title: README
+createTime: 2025/07/03 00:05:24
+---
 # Checkpoints
 
 - [torch-checkpoint-convert-to-bf16](./torch-checkpoint-convert-to-bf16) - converts an existing fp32 torch checkpoint to bf16. If [safetensors](https://github.com/huggingface/safetensors/) are found those are converted as well. Should be easily adaptable to other similar use cases.

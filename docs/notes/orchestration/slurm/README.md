@@ -1,3 +1,7 @@
+---
+title: README
+createTime: 2025/07/03 00:05:24
+---
 # Working in SLURM Environment
 
 Unless you're lucky and you have a dedicated cluster that is completely under your control chances are that you will have to use SLURM to timeshare the GPUs with others. But, often, if you train at HPC, and you're given a dedicated partition you still will have to use SLURM.

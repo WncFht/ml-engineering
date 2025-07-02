@@ -1,3 +1,7 @@
+---
+title: performance
+createTime: 2025/07/03 00:05:24
+---
 # AMD GPUs Performance
 
 As I haven't had a chance to do any serious work with AMD GPUs, just sharing links for now.

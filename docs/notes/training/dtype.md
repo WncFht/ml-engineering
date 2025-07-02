@@ -1,3 +1,7 @@
+---
+title: dtype
+createTime: 2025/07/03 00:05:24
+---
 # Tensor precision / Data types
 
 These are the common datatypes that are used as of this writing in ML (usually referred to as `dtype`):

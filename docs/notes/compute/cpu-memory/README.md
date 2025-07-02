@@ -1,3 +1,7 @@
+---
+title: README
+createTime: 2025/07/03 00:05:24
+---
 # CPU memory
 
 This is a tiny chapter, since usually there are very few nuances one needs to know about CPU memory - which is a good thing!
