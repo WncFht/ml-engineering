@@ -1,6 +1,7 @@
 ---
 title: README
 createTime: 2025/07/03 00:05:24
+permalink: /notes/notes/9hjgaba7/
 ---
 # Working in SLURM Environment
 

@@ -1,6 +1,7 @@
 ---
 title: admin
 createTime: 2025/07/03 00:05:24
+permalink: /notes/notes/gr91lu6r/
 ---
 # SLURM Administration
 

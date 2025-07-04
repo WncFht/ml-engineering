@@ -1,6 +1,7 @@
 ---
 title: README
 createTime: 2025/07/03 00:05:24
+permalink: /notes/notes/lds5jibu/
 ---
 # Single and Multi-node Launchers with SLURM
 

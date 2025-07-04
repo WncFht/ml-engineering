@@ -1,6 +1,7 @@
 ---
 title: debug
 createTime: 2025/07/03 00:05:24
+permalink: /notes/notes/rjvges9z/
 ---
 # Troubleshooting NVIDIA GPUs
 

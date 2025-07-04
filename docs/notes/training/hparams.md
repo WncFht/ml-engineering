@@ -1,31 +1,32 @@
 ---
-title: hparams
+title: 超参数
 createTime: 2025/07/03 00:05:24
+permalink: /notes/notes/z5fo289c/
 ---
-# Selecting Training Hyper-Parameters And Model Initializations
+# 选择训练超参数和模型初始化
 
-The easiest way to find a good hparam and model init starter set is to steal it from a similar training that you know has succeeded. Here is a [collection of public training LLM/VLM logbooks](../resources/README.md#publicly-available-training-llmvlm-logbooks) to get you started. The other common source is papers if they disclose that information. You can also try to reach out to the authors and ask them for these details if they didn't publish it.
+找到一个好的超参数和模型初始化入门集的最简单方法是从一个你知道已经成功的类似训练中“窃取”它。这里有一个[公开可用的训练 LLM/VLM 日志集合](../resources/README.md#publicly-available-training-llmvlm-logbooks)来帮助你入门。另一个常见的来源是论文，如果它们披露了这些信息。如果作者没有公布这些细节，你也可以尝试联系他们索取。
 
-## Glossary
+## 术语表
 
-Training jargon uses a multitude of abbreviations and terms, so here are some important for this chapter.
+训练行话使用了大量的缩写和术语，所以这里有一些对本章很重要的术语。
 
-- BS: Batch Size - here we mean batch size per gpu, often it is also referred to as MBS (micro-batch-size)
-- GBS: Global Batch Size - total batch size per iteration - may include gradient accumulation
-- GAS: Gradient Accumulation Steps - how many forward/backward cycles to perform before one full iteration is complete
-- TFLOPs: Trillion FLOPs per second - [FLOPS](https://en.wikipedia.org/wiki/FLOPS)
-- PP: Pipeline Parallelism
+- BS: 批量大小 - 这里我们指的是每个 gpu 的批量大小，通常也称为 MBS（微批量大小）
+- GBS: 全局批量大小 - 每次迭代的总批量大小 - 可能包括梯度累积
+- GAS: 梯度累积步数 - 在完成一次完整迭代之前执行多少次前向/后向循环
+- TFLOPs: 每秒万亿次浮点运算 - [FLOPS](https://en.wikipedia.org/wiki/FLOPS)
+- PP: 流水线并行
 
-## Global Batch Size Ramp Up
+## 全局批量大小提升
 
-If you intend to train with a very large GBS, with say 1024, or 2048 samples and even higher, when you just start training, it's very wasteful to feed such large batch sizes to the model. At this point it's totally random and can't benefit from having too refined data. Therefore to save data and resources, one often ramps up the global batch size over some period of time.
+如果你打算用一个非常大的 GBS 进行训练，比如 1024、2048 个样本甚至更高，当你刚开始训练时，向模型提供如此大的批量大小是非常浪费的。在这一点上，模型完全是随机的，无法从过于精细的数据中受益。因此，为了节省数据和资源，人们通常会在一段时间内逐步增加全局批量大小。
 
-It's also important to not start with GBS that is too small, since otherwise the progress won't be efficient. When there is too little data the compute (TFLOPS) is inefficient and will slow everything down. This is especially so when Pipeline Parallelism (PP) is used, since the most important thing about PP tuneup is a small GPU idleness bubble, and the smaller the GBS the larger the bubble is.
+同样重要的是，不要从太小的 GBS 开始，否则进度会不高效。当数据太少时，计算（TFLOPS）效率低下，会减慢一切。当使用流水线并行（PP）时尤其如此，因为 PP 调优最重要的事情是一个小的 GPU 空闲气泡，GBS 越小，气泡就越大。
 
-For example, for BLOOM-176B, where we did use PP, after doing throughput benchmarking we found that starting with GBS=16 was incredibly slow (8 TFLOPs), so we eventually started with GBS=192 (73 TFLOPs) and then we ramped up to GBS=2048 (150 TFLOPs) - we increased GBS by 16 every 9_765_625 samples.
+例如，对于 BLOOM-176B，我们确实使用了 PP，在进行吞吐量基准测试后，我们发现从 GBS=16 开始非常慢（8 TFLOPs），所以我们最终从 GBS=192 开始（73 TFLOPS），然后我们提升到 GBS=2048（150 TFLOPS）- 我们每 9,765,625 个样本将 GBS 增加 16。
 
 
 
-### STD Init
+### STD 初始化
 
-This hyper parameter is super-important and it requires math to get it right. For details see [STD Init](instabilities#std-init).
+这个超参数非常重要，需要通过数学计算才能正确设置。有关详细信息，请参阅 [STD 初始化](instabilities#std-init)。

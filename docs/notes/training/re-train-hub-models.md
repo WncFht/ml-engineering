@@ -1,16 +1,17 @@
 ---
-title: re-train-hub-models
+title: 使用微调示例从头开始重新训练 HF Hub 模型
 createTime: 2025/07/03 00:05:24
+permalink: /notes/notes/h9gbzjx0/
 ---
-# Re-train HF Hub Models From Scratch Using Finetuning Examples
+# 使用微调示例从头开始重新训练 HF Hub 模型
 
-HF Transformers has awesome finetuning examples  https://github.com/huggingface/transformers/tree/main/examples/pytorch, that cover pretty much any modality and these examples work out of box.
+HF Transformers 有很棒的微调示例 https://github.com/huggingface/transformers/tree/main/examples/pytorch，几乎涵盖了所有模态，并且这些示例开箱即用。
 
-**But what if you wanted to re-train from scratch rather than finetune.**
+**但是，如果您想从头开始重新训练而不是微调怎么办？**
 
-Here is a simple hack to accomplish that.
+这是一个实现这一目标的简单技巧。
 
-We will use `facebook/opt-1.3b` and we will plan to use bf16 training regime as an example here:
+我们将使用 `facebook/opt-1.3b`，并计划在这里使用 bf16 训练方案作为示例：
 
 ```
 cat << EOT > prep-bf16.py
@@ -30,17 +31,17 @@ tokenizer.save_pretrained(path)
 EOT
 ```
 
-now run:
+现在运行：
 
 ```
 python prep-bf16.py
 ```
 
-This will create a folder: `opt-1.3b-bf16` with everything you need to train the model from scratch. In other words you have a pretrained-like model, except it only had its initializations done and none of the training yet.
+这将创建一个文件夹：`opt-1.3b-bf16`，其中包含从头开始训练模型所需的一切。换句话说，您有一个类似预训练的模型，只是它只完成了初始化，还没有进行任何训练。
 
-Adjust to script above to use `torch.float16` or `torch.float32` if that's what you plan to use instead.
+如果您计划使用 `torch.float16` 或 `torch.float32`，请调整上面的脚本以使用它们。
 
-Now you can proceed with finetuning this saved model as normal:
+现在您可以像往常一样继续微调这个保存的模型：
 
 ```
 python -m torch.distributed.run \
@@ -56,15 +57,15 @@ examples/pytorch/language-modeling/run_clm.py --bf16 \
 linear --warmup_steps 500 --report_to tensorboard --output_dir save_dir
 ```
 
-The key entry being:
+关键条目是：
 ```
 --model_name_or_path opt-1.3b-bf16
 ```
 
-where `opt-1.3b-bf16` is your local directory you have just generated in the previous step.
+其中 `opt-1.3b-bf16` 是您在上一步中刚刚生成的本地目录。
 
-Sometimes it's possible to find the same dataset that the original model was trained on, sometimes you have to use an alternative dataset.
+有时可以找到原始模型训练时使用的相同数据集，有时您必须使用替代数据集。
 
-The rest of the hyper-parameters can often be found in the paper or documentation that came with the model.
+其余的超参数通常可以在模型附带的论文或文档中找到。
 
-To summarize, this recipe allows you to use finetuning examples to re-train whatever model you can find on [the HF hub](https://huggingface.co/models).
+总而言之，这个方法允许您使用微调示例来重新训练您可以在 [HF hub](https://huggingface.co/models) 上找到的任何模型。

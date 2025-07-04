@@ -1,6 +1,7 @@
 ---
 title: Stabs
 createTime: 2025/07/03 00:05:24
+permalink: /notes/notes/o5qa4elq/
 ---
 # Stabs
 

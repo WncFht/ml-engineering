@@ -1,6 +1,7 @@
 ---
 title: performance
 createTime: 2025/07/03 00:05:24
+permalink: /notes/notes/581dyu4u/
 ---
 # AMD GPUs Performance
 

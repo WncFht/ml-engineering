@@ -1,6 +1,7 @@
 ---
 title: users
 createTime: 2025/07/03 00:05:24
+permalink: /notes/notes/cphxnh8t/
 ---
 # SLURM for users
 

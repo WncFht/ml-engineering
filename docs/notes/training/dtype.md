@@ -1,77 +1,78 @@
 ---
-title: dtype
+title: 数据类型
 createTime: 2025/07/03 00:05:24
+permalink: /notes/notes/s7pwwt0g/
 ---
-# Tensor precision / Data types
+# 张量精度 / 数据类型
 
-These are the common datatypes that are used as of this writing in ML (usually referred to as `dtype`):
+截至撰写本文时，机器学习中常用的数据类型（通常称为 `dtype`）如下：
 
-Floating point formats:
-- fp32 - 32 bits
-- tf32 - 19 bits (NVIDIA Ampere+)
-- fp16 - 16 bits
-- bf16 - 16 bits
-- fp8 - 8 bits (E4M3 and E5M2 formats)
-- fp6 - 6 bits
-- fp4 - 4 bits
+浮点格式：
+- fp32 - 32 位
+- tf32 - 19 位 (NVIDIA Ampere+)
+- fp16 - 16 位
+- bf16 - 16 位
+- fp8 - 8 位 (E4M3 和 E5M2 格式)
+- fp6 - 6 位
+- fp4 - 4 位
 
-For visual comparison refer to this representations:
+有关视觉比较，请参阅以下表示形式：
 
 ![fp32-tf32-fp16-bf16](images/fp32-tf32-fp16-bf16.png)
 
-([source](https://developer.nvidia.com/blog/accelerating-ai-training-with-tf32-tensor-cores/))
+（[来源](https://developer.nvidia.com/blog/accelerating-ai-training-with-tf32-tensor-cores/)）
 
 ![fp16-bf16-fp8](images/fp16-bf16-fp8.png)
 
-([source](https://docs.nvidia.com/deeplearning/transformer-engine/user-guide/examples/fp8_primer.html))
+（[来源](https://docs.nvidia.com/deeplearning/transformer-engine/user-guide/examples/fp8_primer.html)）
 
 
-The new formats that are being adopted by new hardware are:
+新硬件正在采用的新格式是：
 - fp4: `float4_e2m1fn`
-- fp6:`float6_e2m3fn` and `float6_e3m2fn`
+- fp6:`float6_e2m3fn` 和 `float6_e3m2fn`
 - fp8: `float8_e3m4`, `float8_e4m3`, `float8_e4m3b11fnuz`, `float8_e4m3fn`, `float8_e4m3fnuz`, `float8_e5m2`, `float8_e5m2fnuz`, `float8_e8m0fnu`
 
-There is an excellent explanation of each of these variations [here](https://github.com/jax-ml/ml_dtypes?tab=readme-ov-file#specifications-of-implemented-floating-point-formats).
+[这里](https://github.com/jax-ml/ml_dtypes?tab=readme-ov-file#specifications-of-implemented-floating-point-formats) 对这些变体中的每一种都有很好的解释。
 
-To decipher the letters followed by the numbers:
-- The `e` indicates the length of exponent
-- The `m` indicates the length of mantissa
-- The `b` indicates the bias
+要解读数字后面的字母：
+- `e` 表示指数的长度
+- `m` 表示尾数的长度
+- `b` 表示偏置
 
-To decipher the letters appearing after the numbers:
-- The `f` indicates it is finite values only (no infinities).
-- The `n` indicates it includes NaNs, but only at the outer range.
-- The `u` stands for unsigned format.
-- The `uz` stands for unsigned zero.
+要解读数字后面出现的字母：
+- `f` 表示它只有限值（没有无穷大）。
+- `n` 表示它包含 NaN，但仅在外部范围内。
+- `u` 代表无符号格式。
+- `uz` 代表无符号零。
 
-So for example: `float8_e4m3b11fnuz` stands for fp8 + 4-bit exponent + 3-bit mantissa + bias 11 + finite values only +  includes NaNs, but only at the outer range + unsigned zero.
+所以，例如：`float8_e4m3b11fnuz` 代表 fp8 + 4 位指数 + 3 位尾数 + 偏置 11 + 仅限有限值 + 包含 NaN，但仅在外部范围内 + 无符号零。
 
 
-Integer formats used in quantization:
+量化中使用的整数格式：
 
-- int8 - 8 bits
-- int4 - 4 bits
-- int1 - 1 bits
+- int8 - 8 位
+- int4 - 4 位
+- int1 - 1 位
 
-## ML dtype progression
+## ML dtype 演进
 
-Originally ML was using fp32, but it was very slow.
+最初 ML 使用 fp32，但它非常慢。
 
-Next [mixed-precision was invented using a combination of fp16 and fp32](https://developer.nvidia.com/blog/video-mixed-precision-techniques-tensor-cores-deep-learning/) was invented which tremendously sped up the training speed.
+接下来[使用 fp16 和 fp32 组合的混合精度](https://developer.nvidia.com/blog/video-mixed-precision-techniques-tensor-cores-deep-learning/)被发明出来，极大地加快了训练速度。
 
-![fp32/fp16 mixed precision](images/mixed-precision-fp16.png)
+![fp32/fp16 混合精度](images/mixed-precision-fp16.png)
 
-([source](https://developer.nvidia.com/blog/video-mixed-precision-techniques-tensor-cores-deep-learning/))
+（[来源](https://developer.nvidia.com/blog/video-mixed-precision-techniques-tensor-cores-deep-learning/)）
 
-But fp16 proved to be not very stable and training LLM was extremely difficult.
+但 fp16 被证明不是很稳定，训练 LLM 非常困难。
 
-Luckily bf16 came out and replaced fp16 using the same mixed precision protocol. This made the LLM training much more stable.
+幸运的是，bf16 问世并使用相同的混合精度协议取代了 fp16。这使得 LLM 训练更加稳定。
 
-Then fp8 came and mixed precision has switched to [that](https://docs.nvidia.com/deeplearning/transformer-engine/user-guide/examples/fp8_primer.html) and which makes the training even faster. See the paper: [FP8 Formats for Deep Learning](https://arxiv.org/abs/2209.05433).
+然后 fp8 问世，混合精度已切换到[那个](https://docs.nvidia.com/deeplearning/transformer-engine/user-guide/examples/fp8_primer.html)，这使得训练速度更快。请参阅论文：[用于深度学习的 FP8 格式](https://arxiv.org/abs/2209.05433)。
 
-To appreciate the speed ups between the different formats have a look at this table for NVIDIA A100 TFLOPS spec (w/o sparsity):
+为了体会不同格式之间的速度提升，请看下表，了解 NVIDIA A100 TFLOPS 规格（无稀疏性）：
 
-| Data type              | TFLOPS |
+| 数据类型 | TFLOPS |
 | :---                   |    --: |
 | FP32                   |   19.5 |
 | Tensor Float 32 (TF32) |    156 |
@@ -80,67 +81,66 @@ To appreciate the speed ups between the different formats have a look at this ta
 | FP8 Tensor Core        |    624 |
 | INT8 Tensor Core       |    624 |
 
-Each next dtype is about 2x faster than the previous one (except fp32 which is much slower than the rest).
+除了 fp32 比其余的慢得多之外，每个后续的 dtype 都比前一个快大约 2 倍。
 
-In parallel with the mixed training regime the ML community starting coming up with various quantization approaches. Probably one of the best examples is Tim Dettmers' [bitsandbytes](https://github.com/TimDettmers/bitsandbytes) which provides many 4 and 8-bit quantization solutions. The Deepspeed team also has some [interesting quantization solutions](https://www.deepspeed.ai/tutorials/model-compression/).
+与混合训练方案并行，ML 社区开始提出各种量化方法。可能最好的例子之一是 Tim Dettmers 的 [bitsandbytes](https://github.com/TimDettmers/bitsandbytes)，它提供了许多 4 位和 8 位量化解决方案。Deepspeed 团队也有一些[有趣的量化解决方案](https://www.deepspeed.ai/tutorials/model-compression/)。
 
 ## TF32
 
-TF32 is a magical datatype that is available on NVIDIA GPUs since Ampere, and which allows fp32 `matmul`s performed at a much faster speed than normal fp32 `matmul`s with a small precision loss.
+TF32 是自 Ampere 以来 NVIDIA GPU 上可用的一种神奇的数据类型，它允许以比普通 fp32 `matmul` 快得多的速度执行 fp32 `matmul`，而精度损失很小。
 
-Here is an example of A100 TFLOPS (w/o sparsity):
+以下是 A100 TFLOPS（无稀疏性）的示例：
 
-| Data type              | TFLOPS |
+| 数据类型 | TFLOPS |
 | :---                   |    --: |
 | FP32                   |   19.5 |
 | Tensor Float 32 (TF32) |    156 |
 
-As you can see TF32 is 8x faster than FP32!
+如您所见，TF32 比 FP32 快 8 倍！
 
-It's disabled by default. To enable it add at the beginning of your program:
+默认情况下它是禁用的。要启用它，请在程序开头添加：
 
 ```
 torch.backends.cuda.matmul.allow_tf32 = True
 torch.backends.cudnn.allow_tf32 = True
 ```
 
-For more information about the actual precision loss please see [this](https://pytorch.org/docs/stable/notes/cuda.html#tensorfloat-32-tf32-on-ampere-and-later-devices).
+有关实际精度损失的更多信息，请参阅[此](https://pytorch.org/docs/stable/notes/cuda.html#tensorfloat-32-tf32-on-ampere-and-later-devices)。
 
 
-## When to use fp32 accumulators
+## 何时使用 fp32 累加器
 
-Whenever a low-precision dtype is used one has to be careful not to accumulate intermediary results in that dtype.
+每当使用低精度 dtype 时，都必须小心不要在该 dtype 中累积中间结果。
 
-`LayerNorm`-like operations must not do their work in half-precision, or they may lose a lot of data. Therefore when  these operations are implemented correctly they do efficient internal work in the dtype of the inputs, but using the fp32 accumulation registers and then their outputs are downcast to the precision of the inputs.
+类似 `LayerNorm` 的操作不能在半精度下工作，否则它们可能会丢失大量数据。因此，当这些操作被正确实现时，它们会在输入的 dtype 中高效地进行内部工作，但使用 fp32 累加寄存器，然后它们的输出被下转换为输入的精度。
 
-Generally it's just the accumulation that is done in fp32, since adding up many low-precision numbers is very lossy otherwise.
+通常，只有累加是在 fp32 中完成的，因为否则将许多低精度数字相加会非常耗损。
 
-Here are some examples:
+以下是一些例子：
 
-1. Reduction collectives
+1. 规约集合
 
-* fp16: ok to do in fp16 if loss scaling is in place
+* fp16：如果使用了损失缩放，则可以在 fp16 中进行
 
-* bf16: only ok in fp32
+* bf16：只能在 fp32 中进行
 
-2. Gradient accumulation
+2. 梯度累积
 
-* best done in fp32 for fp16 and bf16, but definitely is a must for bf16
+* 对于 fp16 和 bf16，最好在 fp32 中完成，但对于 bf16 绝对是必须的
 
-3. Optimizer step / Vanishing gradients
+3. 优化器步骤 / 梯度消失
 
-* when adding a tiny gradient to a large number, that addition is often nullified therefore typically fp32 master weights and fp32 optim states are used.
+* 当将一个非常小的梯度添加到一个大数上时，该加法通常会被抵消，因此通常使用 fp32 主权重和 fp32 优化器状态。
 
-* f16 master weights and optim states can be used when using [Kahan Summation](https://en.wikipedia.org/wiki/Kahan_summation_algorithm)
-or [Stochastic rounding](https://en.wikipedia.org/wiki/Rounding) (introduced in [Revisiting BFloat16 Training](https://arxiv.org/abs/2010.06192)).
+* 当使用 [Kahan 求和](https://en.wikipedia.org/wiki/Kahan_summation_algorithm)或[随机舍入](https://en.wikipedia.org/wiki/Rounding)（在[重新审视 BFloat16 训练](https://arxiv.org/abs/2010.06192)中引入）时，可以使用 f16 主权重和优化器状态。
 
-For an example of the latter see: [AnyPrecision optimizer](https://github.com/pytorch/torchdistx/pull/52) with the latest version found [here](https://github.com/facebookresearch/multimodal/blob/6bf3779a064dc72cde48793521a5be151695fc62/torchmultimodal/modules/optimizers/anyprecision.py#L17).
+有关后者的示例，请参阅：[AnyPrecision 优化器](https://github.com/pytorch/torchdistx/pull/52)，最新版本可在[此处](https://github.com/facebookresearch/multimodal/blob/6bf3779a064dc72cde48793521a5be151695fc62/torchmultimodal/modules/optimizers/anyprecision.py#L17)找到。
 
 
-## Changing precision post training
+## 训练后更改精度
 
-Sometimes it's OK to change precision after the model was trained.
+有时，在模型训练后更改精度是可以的。
 
-- Using bf16-pretrained model in fp16 regime usually fails - due to overflows (the biggest number that can be represented in fp16 is 64k) for an indepth discussion and possible workaround see this [PR](https://github.com/huggingface/transformers/pull/10956).
+- 在 fp16 模式下使用 bf16 预训练模型通常会失败 - 由于溢出（fp16 中可以表示的最大数字是 64k），有关深入讨论和可能的解决方法，请参阅此 [PR](https://github.com/huggingface/transformers/pull/10956)。
 
-- Using fp16-pretrained model in bf16 regime usually works - it will lose some performance on conversion, but should work - best to finetune a bit before using it.
+- 在 bf16 模式下使用 fp16 预训练模型通常可以工作 - 转换时会损失一些性能，但应该可以工作 - 最好在使用前进行一些微调。

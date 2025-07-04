@@ -1,13 +1,14 @@
 ---
-title: contributors
+title: 贡献者
 createTime: 2025/07/03 00:05:24
+permalink: /notes/notes/oh2emi6g/
 ---
-# Contributors
+# 贡献者
 
-Multiple contributors kindly helped to improve these ever improving and expanding notes.
+许多贡献者热心帮助改进这些不断完善和扩展的笔记。
 
-1. Some of them did it via PRs, and are thus listed automatically [here](https://github.com/stas00/ml-engineering/graphs/contributors)
-2. Others did it via various other ways so I'm listing them explicitly here:
+1. 其中一些人通过 PR 做出贡献，因此会自动列在[这里](https://github.com/stas00/ml-engineering/graphs/contributors)
+2. 其他人则通过各种其他方式做出贡献，因此我在这里明确列出他们：
 
 - [Adam Moody](https://github.com/adammoody)
 - [Alex Rogozhnikov](https://github.com/arogozhnikov)
@@ -31,4 +32,4 @@ Multiple contributors kindly helped to improve these ever improving and expandin
 - [Zhiqi Tao](https://www.linkedin.com/in/zhiqitao/)
 
 
-If you contributed to this text and for some reason you're not on one of these 2 lists - let's fix it by adding your name with a github or similar link here.
+如果您为本文做出贡献，但由于某种原因没有出现在这两个列表中的任何一个上 - 让我们通过在此处添加您的姓名以及 github 或类似链接来解决此问题。

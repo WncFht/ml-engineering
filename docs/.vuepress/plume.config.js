@@ -20,6 +20,9 @@ export default defineThemeConfig({
   plugins: {
     iconify: {
       collections: ['mdi'],
+    },
+    shiki: {
+      languages: ["bibtex", "python", "console", "bash", "ini"],
     }
   }
 })

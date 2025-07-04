@@ -1,20 +1,21 @@
 ---
-title: incoming
+title: 待办
 createTime: 2025/07/03 00:05:24
+permalink: /notes/notes/20zwt2lj/
 ---
-# Things to add / integrate
+# 需要添加/集成的内容
 
-# pdf book notes
+# pdf 书籍笔记
 
-ideas from Sam: https://github.com/saforem2: https://github.com/stas00/ml-engineering/pull/17#discussion_r1439912709
+来自 Sam 的想法：https://github.com/saforem2: https://github.com/stas00/ml-engineering/pull/17#discussion_r1439912709
 https://quarto.org/, https://quarto.org/docs/gallery/, https://kevinheavey.github.io/modern-polars/, https://quarto.org/docs/output-formats/pdf-basics.html
 
-# Performance
+# 性能
 
 https://pytorch.org/tutorials/recipes/recipes/tuning_guide.html
 
-Dirk Groeneveld's Script that checks node pairs for speed https://github.com/allenai/OLMo/commit/f91cebdfa299bf55e815d496c367de8b59881c2e
-```
+Dirk Groeneveld 检查节点对速度的脚本 https://github.com/allenai/OLMo/commit/f91cebdfa299bf55e815d496c367de8b59881c2e
+```bash
 #!/bin/bash
 
 NCCL_LIB_DIR=/var/lib/tcpxo/lib64 source /var/lib/tcpxo/lib64/nccl-env-profile.sh
@@ -39,145 +40,145 @@ mpirun \
   -x OMP_NUM_THREADS=16 \
   bash -c "source ~/venv/OLMo/bin/activate && torchrun --nproc_per_node 8 --nnodes=2 --rdzv-backend=c10d --rdzv-endpoint=$FIRST_HOST ~/OLMo/scripts/augusta/all_reduce_bench.py"
 ```
-and to run:
+运行命令：
 ```
-# checking all node pairs for reduce perf
+# 检查所有节点对的 reduce 性能
 fgrep -hv \# ~/hostfiles/hosts | \
 parallel -N2 'echo {} $(./check_node_pair.sh {} 2>&1 | fgrep busbw)'
 ```
 
 
-# Storage chapter
+# 存储章节
 
-### Storage benchmarks:
+### 存储基准测试：
 
 https://github.com/argonne-lcf/dlio_benchmark
 
 
-Incoming suggestions from Ross Wightman to integrate:
+Ross Wightman 待集成的建议：
 
-- I'd try to separate volumes by workload, so keep the 'lots of small files', high churn like environments, code separate from bulk storage like datasets, checkpoints. Possibly even split those too since datasets are largely static and checkpoints are being rotated all the time
+- 我会尝试按工作负载分离卷，所以将"大量小文件"、高流失率的环境、代码与数据集、检查点等批量存储分开。甚至可能也拆分那些，因为数据集基本上是静态的，而检查点一直在轮换
 
-- When datasets are on network storage, just like bucket storage, they should consist of large files AND be read as large files (sequentially in large chunks, not mmapped!). Avoid seeking within datasets
+- 当数据集在网络存储上时，就像桶存储一样，它们应该由大文件组成，并且应该作为大文件读取（以大块顺序读取，而不是 mmap！）。避免在数据集中进行寻址
 
-- Setups like HF datasets can be deceiving, might look like one big file, but often being mmap'd and the IO read pattern is nuts, like 3-4x more iops than if you'd read them as individual files.
-  Mmap loading can be turned off, but if that's the case, for a lot of datasets you move a problem into the DataLoader processes, requiring reading too much data into memory at once. Better awareness of tradeoffs for different use cases, and especially using Iterable streaming when appropriate.
+-像 HF 数据集这样的设置可能具有欺骗性，可能看起来像一个大文件，但通常是 mmap 并且 IO 读取模式很疯狂，比将它们作为单个文件读取多 3-4 倍的 iops。
+  可以关闭 Mmap 加载，但如果是这样，对于许多数据集，您会将问题转移到 DataLoader 进程中，需要一次性将太多数据读入内存。更好地了解不同用例的权衡，尤其是在适当时使用 Iterable 流式传输。
 
-- In a way, bucket storage like s3, via the interface limitations, enforces patterns that are reasonable for storage backends like this. It's ooh, it's mounted as a folder, I can do whatever I want (mmap files, write loads of little ones, delete them all, etc) that's the prob.
+- 在某种程度上，像 s3 这样的桶存储，通过接口限制，强制执行了对此类存储后端合理的模式。哦，它被挂载为一个文件夹，我可以做任何我想做的事情（mmap 文件、写大量小文件、删除所有文件等等），这才是问题所在。
 
-- One also cannot expect to treat a distributed filesystem like their local disk. If you separated volumes by workload you'd probably be able to utilize much higher % of the total storage. Don't mix high churn, small files with low churn large files.
+- 人们也不能指望像对待本地磁盘一样对待分布式文件系统。如果你按工作负载分离卷，你可能能够利用更高百分比的总存储空间。不要将高流失率、小文件与低流失率、大文件混合在一起。
 
-- Also, note that once your datasets are optimally friendly for a large, distributed network filesystem, they can usually just be streamed from bucket storage in cloud systems that have that option. So better to move them off the network filesystem in that case.
+- 另外，请注意，一旦您的数据集对大型分布式网络文件系统进行了优化，它们通常就可以直接从具有该选项的云系统中的桶存储中进行流式传输。因此，在这种情况下，最好将它们移出网络文件系统。
 
-# Debug
+# 调试
 
-Memory leak Checking
+内存泄漏检查
 
 ```
 cuda-memcheck --leak-check full python program.py
 ```
 
 
-Race detection:
+竞争条件检测：
 ```
 cuda-memcheck --tool racecheck
 ```
-with extra options:
- --save to save output to a disk
- --print-level to control output
+使用额外选项：
+ --save 将输出保存到磁盘
+ --print-level 控制输出
 
 ```
 cuda-memcheck --tool racecheck --racecheck-report analysis
 ```
 
-gdb with cuda
+使用 cuda 的 gdb
 
 ```
 cuda-gdb
 ```
 
-- integrate debug_utils.py
+- 集成 debug_utils.py
 
 
-# model parallelism
+# 模型并行
 
-a good table here Scaling equations of each type of parallelism.
+这里有一个很好的表格，列出了每种并行类型的扩展方程。
 https://www.cerebras.net/blog/cerebras-sets-record-for-largest-ai-models-ever-trained-on-single-device#summary
 
 
-# Network
+# 网络
 
-Make a new benchmark section:
+创建一个新的基准测试部分：
 
 1. nccl-tests
 2. `all_reduce_bench.py`
 3. https://github.com/deepspeedai/DeepSpeedExamples/tree/master/benchmarks/communication
-4. like nccl-tests, another common set of benchmarks used at HPC sites are the OSU microbenchmarks like osu_lat, osu_bw, and osu_bibw.
+4. 像 nccl-tests 一样，HPC 站点使用的另一组常见基准测试是 OSU 微基准测试，如 osu_lat、osu_bw 和 osu_bibw。
 
 https://mvapich.cse.ohio-state.edu/benchmarks/
 
-Those are MPI-based benchmarks.  Those can be run using GPUDirect RDMA so you can measure MPI performance between GPUs, either on the same node or between nodes.
+这些是基于 MPI 的基准测试。这些可以使用 GPUDirect RDMA 运行，因此您可以测量 GPU 之间（无论是在同一节点上还是在节点之间）的 MPI 性能。
 
 
 ## Infiniband
 
-References:
-- [Sys Admin Pocket Survival Guide - InfiniBand](https://tin6150.github.io/psg/infiniband.html)
+参考资料：
+- [系统管理员袖珍生存指南 - InfiniBand](https://tin6150.github.io/psg/infiniband.html)
 
 
-### Diagnostics
+### 诊断
 
-Not-IB specific
-- `ifconfig` - display the status of the currently active interfaces
-- `ip addr show` - display the addresses for every link configured on the system
+非 IB 特定
+- `ifconfig` - 显示当前活动接口的状态
+- `ip addr show` - 显示系统上配置的每个链路的地址
 
-Display the local Host’s IB device status (3 different views).
+显示本地主机的 IB 设备状态（3 种不同视图）。
 - `ibstat`
 - `ibstatus`
 - `ibv_devinfo`
 
-Scan IB network:
-- `ibnetdiscover` - scan topology
-- `ibroute` - display the unicast and multicast forwarding tables for the switches
-- `ibdiagnet` - IB diagnostic net
+扫描 IB 网络：
+- `ibnetdiscover` - 扫描拓扑
+- `ibroute` - 显示交换机的单播和多播转发表
+- `ibdiagnet` - IB 诊断网络
 
-Check for network errors:
-- `ibcheckerrors` - check if the error counters of a port/node are within predefined thresholds
-- `ibchecknet` - perform port/node/errors check on the subnet.
+检查网络错误：
+- `ibcheckerrors` - 检查端口/节点的错误计数器是否在预定义阈值内
+- `ibchecknet` - 对子网执行端口/节点/错误检查。
 
-Test IB network configuration:
-- `ibcheckport` - perform some basic tests on the specified port
-- `ibchecknode` - perform some basic tests on the specified node
-- `ibclearcounters` - clear port counters for the InfiniBand subnet
+测试 IB 网络配置：
+- `ibcheckport` - 对指定端口执行一些基本测试
+- `ibchecknode` - 对指定节点执行一些基本测试
+- `ibclearcounters` - 清除 InfiniBand 子网的端口计数器
 
-Other checks:
+其他检查：
 - `iblinkinfo`
 - `ibcheck`
 - `wwibcheck`
-- `ibswitch` - verify that an IB-QNEM is installed in the shelf
-- `ibhosts` - list all hosts in the IB network.
-`ibswitches` - list all ib switches
+- `ibswitch` - 验证机架中是否安装了 IB-QNEM
+- `ibhosts` - 列出 IB 网络中的所有主机。
+`ibswitches` - 列出所有 ib 交换机
 
-Tracing:
-- `ibping` - ping/pong between InfiniBand nodes
-- `ibsysstat` - obtain basic information for remote nodes (hostname, cpus, memory, utilization)
-- `ibswitches` - scan the net or use existing net topology file and list all switches
-- `ibhosts` - scan the net or use existing net topology file and list all hosts
+追踪：
+- `ibping` - 在 InfiniBand 节点之间进行 ping/pong
+- `ibsysstat` - 获取远程节点的基本信息（主机名、cpu、内存、利用率）
+- `ibswitches` - 扫描网络或使用现有的网络拓扑文件并列出所有交换机
+- `ibhosts` - 扫描网络或使用现有的网络拓扑文件并列出所有主机
 
-Display network topology:
+显示网络拓扑：
 - `iblinkinfo -R`
 
-Use `ifconfig` to discover `IPoIB` networks, e.g. if you get `ib0` device with `inet addr:100.1.1.102`, you can connect to it - e.g. `ping 100.1.1.102`
+使用 `ifconfig` 发现 `IPoIB` 网络，例如，如果你得到 `ib0` 设备，其 `inet addr:100.1.1.102`，你就可以连接到它 - 例如 `ping 100.1.1.102`
 
-Find the controller:
+找到控制器：
 `lspci | grep Mellanox`
 
-Print driver configuration (interface name comes from `ifconfig`):
+打印驱动程序配置（接口名称来自 `ifconfig`）：
 `ethtool -i enP49239s1`
 
-### Performance
+### 性能
 
-`perftest` Package includes:
+`perftest` 包包括：
 - `ib_send_bw`
 - `ib_send_lat`
 - `ib_write_bw`
@@ -187,18 +188,18 @@ Print driver configuration (interface name comes from `ifconfig`):
 - `ib_atomic_bw`
 - `ib_atomic_lat`
 
-example: `ib_send_bw -a address` - test bandwidth
+示例：`ib_send_bw -a address` - 测试带宽
 
-`qperf` measures bandwidth and latency between two nodes (TCP/IP and RDMA transports)
+`qperf` 测量两个节点之间的带宽和延迟（TCP/IP 和 RDMA 传输）
 
 
 
-If the network is much slower than it should be, might have to specify which HCAs to use (`ibv_devinfo` to get HCAs)
+如果网络比应有的速度慢得多，可能需要指定使用哪个 HCA（使用 `ibv_devinfo` 获取 HCA）
 ```
 export NCCL_IB_HCA=mlx5
 ```
 
-might need to install ib packages on the vms:
+可能需要在虚拟机上安装 ib 包：
 
 ```
 sudo apt-get install -y automake dh-make git libcap2 libnuma-dev libtool make pkg-config udev curl librdmacm-dev rdma-core \
@@ -206,46 +207,46 @@ sudo apt-get install -y automake dh-make git libcap2 libnuma-dev libtool make pk
 sudo sed -i -e 's/# OS.EnableRDMA=y/OS.EnableRDMA=y/g' /etc/waagent.conf
 ```
 
-- Verbs: allow command to be executed on feature-rich IB switch.
+- Verbs：允许在功能丰富的 IB 交换机上执行命令。
 
 
 # SLURM
 
-repos to explore:
+要探索的仓库：
 https://github.com/OleHolmNielsen/Slurm_tools
 
 
-# Testing
+# 测试
 
-- integrate the features from testing_utils.py
-
-
-# From Adam Moody's team at LLNL
+- 集成 testing_utils.py 的功能
 
 
-- NUMA affinities
+# 来自 LLNL 的 Adam Moody 团队
+
+
+- NUMA 亲和性
 
 https://github.com/LLNL/mpibind/tree/master/python
-mpibind for Python enables the use of the mpibind algorithm in arbitrary Python programs.
+mpibind for Python 使得在任意 Python 程序中使用 mpibind 算法成为可能。
 
-- Training hanging detection tool:
+- 训练挂起检测工具：
 
-This is to expand:
+这是为了扩展：
 https://github.com/stas00/ml-engineering/tree/master/fault-tolerance#is-job-hanging-watchdog
 
 
-notes from Adam:
+来自 Adam 的笔记：
 
-https://github.com/LLNL/STAT - the Stack Trace Analysis Tool
+https://github.com/LLNL/STAT - 堆栈跟踪分析工具
 https://hpc.llnl.gov/software/development-environment-software/stat-stack-trace-analysis-tool
 
 https://github.com/grondo/io-watchdog
 
-And you can see how we integrated STAT a ways down on this page:
+你可以在这个页面下方看到我们是如何集成 STAT 的：
 
 https://hpc.llnl.gov/software/development-environment-software/stat-stack-trace-analysis-tool
 
-There are some "action" scripts one has to write, which io-watchdog executes when it detects a hang.  The contents of those aren't shown on the page, but I could look that up if you're curious.  The user would create a config file like:
+有一些"动作"脚本需要编写，当 io-watchdog 检测到挂起时会执行这些脚本。页面上没有显示这些脚本的内容，但如果你好奇，我可以查一下。用户会创建一个像这样的配置文件：
 
 ```
 search /usr/local/tools/io-watchdog/actions
@@ -253,20 +254,20 @@ timeout = 20m
 actions = STAT, kill
 ```
 
-This configured io-watchdog to assume the job was stuck if it saw no output for 20 minutes (from rank 0), and then to run "STAT" to collect a stack trace and run "kill" to scancel the job.  We had a couple others, like one to email the user that io-watchdog detected a hang.  One then launches with:
+这将 io-watchdog 配置为，如果它在 20 分钟内没有看到任何输出（来自 rank 0），就认为作业卡住了，然后运行"STAT"来收集堆栈跟踪，并运行"kill"来 scancel 作业。我们还有其他一些脚本，比如一个在 io-watchdog 检测到挂起时给用户发邮件的脚本。然后这样启动：
 ```
 srun --io-watchdog mpi_application
 ```
 
-a quick demo of SCR.  The python to use it is pretty clean.
+SCR 的一个快速演示。使用它的 python 代码非常简洁。
 
-Install the SCR library (C + MPI)
+安装 SCR 库（C + MPI）
 https://scr.readthedocs.io/en/v3.0/users/build.html#cmake
 
-Install the scr.py module:
+安装 scr.py 模块：
 https://github.com/LLNL/scr/tree/develop/python#installing-the-scr-python-module
 
-Example checkpoint in python:
+python 中的检查点示例：
 https://github.com/LLNL/scr/blob/1878de8756c2b51882a7cda7b97b142eae4e3995/python/scr_example.py#L64-L105
 
 
@@ -276,7 +277,7 @@ https://github.com/LLNL/scr/blob/1878de8756c2b51882a7cda7b97b142eae4e3995/python
   398  nvidia-smi nvlink -e
 
 
-GPU VBIOS version might be important when researching issues. Let's add the name and bus id to the query, we get:
+在研究问题时，GPU VBIOS 版本可能很重要。让我们将名称和总线 id 添加到查询中，我们得到：
 
 ```
 $ nvidia-smi --query-gpu=gpu_name,gpu_bus_id,vbios_version --format=csv
@@ -288,7 +289,7 @@ $ nvidia-smi -q | grep "VBIOS Version"
 ```
 
 
-Check error counters of NVLink links
+检查 NVLink 链接的错误计数器
 
 ```
 $ nvidia-smi nvlink -e
@@ -308,7 +309,7 @@ GPU 0: NVIDIA H100 80GB HBM3 (UUID: GPU-abcdefab-cdef-abdc-abcd-abababababab)
          Link 17: CRC Errors: 0
 ```
 
-Another useful command is:
+另一个有用的命令是：
 ```
 $ nvidia-smi nvlink --status
 GPU 0: NVIDIA H100 80GB HBM3 (UUID: GPU-abcdefab-cdef-abdc-abcd-abababababab)
@@ -316,9 +317,9 @@ GPU 0: NVIDIA H100 80GB HBM3 (UUID: GPU-abcdefab-cdef-abdc-abcd-abababababab)
          [...]
          Link 17: 26.562 GB/s
 ```
-this one tells you the current speed of each link
+这个告诉你每个链接的当前速度
 
-Run `nvidia-smi nvlink -h` to discover more features (reporting, resetting counters, etc.).
+运行 `nvidia-smi nvlink -h` 以发现更多功能（报告、重置计数器等）。
 
 nvidia-smi --query-remapped-rows=gpu_name,gpu_bus_id,remapped_rows.failure,remapped_rows.pending,\
 remapped_rows.correctable,remapped_rows.uncorrectable \

@@ -1,532 +1,489 @@
 ---
 title: ai-battlefield
 createTime: 2025/07/03 00:05:24
+permalink: /notes/notes/xd7mkp42/
 ---
-# The AI Battlefield Engineering - What You Need To Know
+# AI战场工程 - 你需要知道什么
 
-This chapter is one person's opinionated overview of the ML/AI Engineering reality, which may or may not be another person's reality. The intention is to help you start asking the right questions and get your ML Engineering needs met.
+本章是一个人对 ML/AI 工程现实的固执己见的概述，这可能是也可能不是另一个人的现实。其目的是帮助您开始提出正确的问题，并满足您的 ML 工程需求。
 
-## Basics
+## 基础知识
 
-### What's important in the AI race?
+### 在人工智能竞赛中什么最重要？
 
-Training:
+训练：
 
-1. How fast one can train a better model (first to market advantage)
-2. How much $$ was spent (do we still have money left to pay salaries to talent after training?)
+1. 一个人能多快地训练出更好的模型（先发优势）
+2. 花了多少钱（训练后我们还有钱给人才发工资吗？）
 
-Inference:
+推理：
 
-1. Fast latency (users are used to msec response times and will leave if the response takes seconds)
-2. Fast throughput (how many concurrent queries can be processed)
-3. How much $$ is being spent per user (can we rent more GPUs to acquire more users and/or improve (1) and (2)?)
+1. 快速延迟（用户习惯于毫秒级的响应时间，如果响应需要几秒钟，他们会离开）
+2. 快速吞吐量（可以处理多少并发查询）
+3. 每个用户花费多少 $$（我们能否租用更多 GPU 来获取更多用户和/或改进（1）和（2）？）
 
+### LLM 训练的需求是什么？
 
-### What are the needs of LLM training?
+1. 快速计算，绝大部分是矩阵乘法
+2. 足够快的内存、IO、网络和 CPU 来为计算提供数据
 
-1. Fast compute massively dominated by matrix multiplications
-2. Fast enough memory, IO, network and CPU to feed the compute
+推论：如果您购买或租用硬件时投资了最快的加速器，但在任何其他组件上吝啬，那么您就浪费了金钱，并且您可能无法赢得比赛，因为训练将需要更长的时间。
 
-Corollary: If when you buy or rent hardware you invest in the fastest accelerators, but cheap out on any of the other components you wasted $$ and you might not win the race as it'll take longer to train.
+### 什么是机器学习的主力？
 
+- 加速器或处理单元是完成大部分工作的设备。
 
+- 由于 ML 进行了大量的并行处理（[SIMD](https://en.wikipedia.org/wiki/Single_instruction,_multiple_data)），GPU 最初被使用，但现在你还有 TPU、IPU、FPGA、HPU、QPU、RDU 等。最近的 CPU 也开始被用作加速器，尤其是在推理方面。
 
-### What are the workhorses of ML?
+[更多详情](../compute/accelerator)。
 
-- An accelerator or a processing unit is what does most of the work.
+### 人工智能驱动实体
 
-- Since ML does a lot of parallel processing ([SIMD](https://en.wikipedia.org/wiki/Single_instruction,_multiple_data)) GPUs were used at the beginning, but now you additionally have TPUs, IPUs, FPGAs, HPUs, QPUs, RDUs, etc. Recent CPUs are becoming used as accelerators as well, especially for inference.
+- AI 公司 - 训练模型/围绕自训练或他人训练的模型构建产品，进行内部研究。
+- 学术界 - 进行大量研究并撰写论文。产生了许多新想法。
+- AI 爱好者 - 有很多善意可用，一些人将资源/人才聚集在一起训练开放存取模型，由 HPC 和偶尔的云或大学集群捐赠计算资源。
+- 企业家 - 有很多唾手可得的成果 - 创造性地转售服务，制作 ML 驱动的应用程序，并利用各种可用资源的巧妙组合创造出惊人的成果。
 
-[More details](../compute/accelerator).
+### 信息共享
 
-### AI driving entities
+- 令人非常惊讶的是，几乎所有参与 AI 领域的人都与社区分享了大量的发现。
+- 当然，公司不会披露其所有的知识产权，但其中很多确实以知识或模型权重的形式共享出来
+- 发表大量知识产权和模型的公司往往会吸引更高质量的人才。
+- Twitter 似乎是关注正在发生的事情的中心平台
 
-- AI companies - train models/build products around self-trained or trained-by-others' models, in-house research.
-- Academia - does massive research and write papers. Lots of new ideas are generated.
-- AI enthusiasts - lots of good will available, some pull resources/talents together to train open access models, with donated compute by HPCs and an occasional cloud, or a university cluster.
-- Entrepreneurs - lots of low hanging fruit to pick - creative reselling of services, making ML-driven apps, and using various ingenious combinations of available resources to create amazing outcomes.
+### AI 泡沫
 
+- [互联网泡沫](https://en.wikipedia.org/wiki/Dot-com_bubble) 发生在 1995-2000 年。现在 AI 领域正在发生非常相似的情况。
 
-### Information sharing
+- 有大量资金可用于创建新创公司或推动现有公司发展。筹集数百万美元相对容易。
 
-- It's very surprising that almost everybody involved in the domain of AI shares a lot of the discoveries with the community.
-- Surely, companies don't disclose all of their IP, but a lot of it does get shared in the form of knowledge or model weights
-- Companies that publish a lot of IP and models tend to attract higher quality talent.
-- Twitter seems to be the central platform where one must be to follow what's going on
+- 由于我们正处于 AI 行业的"狂野西部"阶段，预测未来非常困难，因此只要听起来合理，几乎任何创业想法都可以。
 
+- AI 泡沫与互联网泡沫的区别在于，运营一家互联网公司实际上并不需要太多资金 - 大部分筹集的资金都用于营销和一些员工，几乎没有用于计算。AI 公司需要数百万美元，因为训练 LLM 需要大量的计算资源，而这些计算资源非常昂贵。例如，1 个 NVIDIA H100 成本约为 3 万美元，一家公司可能需要 512 个，即 1500 万美元（不计算其他硬件组件和相关成本）！
 
+## 机器学习工程师的天堂与地狱
 
-### The AI bubble
+这是我个人基于 LLM/VLM 训练的天堂与地狱。你的情况可能会有所不同。
 
-- The [Dot-com bubble](https://en.wikipedia.org/wiki/Dot-com_bubble) occurred during 1995-2000. And a very similar situation is happening right now in the AI space.
+### 机器学习工程师的天堂
 
-- There is a lot of money available to create new startups or boost the existing companies. It's relatively easy to raise millions of dollars.
+1. 一个构建良好的 HPC，或一个全方位服务的基于云的集群，有人勤奋及时地照管硬件和系统。
 
-- As we are in the wild-wild-west stage of the AI industry it's very difficult to predict the future, and so pretty much anything goes as far as startup ideas go, as long as it sounds reasonable.
+   我只需要带上我的训练软件进行训练，这已经是一项需要特殊技能的极其复杂的工作。
 
-- What distinguishes the AI bubble from the Dot-com bubble, is that one didn't actually need much money to operate a Dot-com company - most of the raised money went to marketing and some to staff, barely any to compute. AI companies need millions of dollars because training LLMs requires an insane amount of compute, and that compute is very expensive. e.g. 1x NVIDIA H100 costs ~$30k and a company may need 512 of those, which is $15M (not counting the other hardware components and related costs)!
+2. 大量节点可供独家无限使用
 
+3. 快速的节点间连接，不会成为加速器的瓶颈，并且不与其他用户共享
 
+4. 巨大的本地超快速基于 NVME 的共享文件系统，可以容纳数据集和检查点
 
-## ML Engineer's heaven and hell
+5. 带有 SLURM 和最少软件的裸机 Linux，能够启动训练作业
 
-This is my personal LLM/VLM trainings-based heaven and hell. YMMV.
+6. `sudoer` 权限，方便与团队合作
 
-### ML Engineer's heaven
+### 机器学习工程师的地狱
 
-1. A well built HPC, or a full service cloud based cluster, where someone diligently and timely takes care of the hardware and the systems.
+1. 一个云或内部集群，你必须做所有的事情 - 系统管理、更换硬件、处理停机等。然后还要在此之上进行训练。
 
-   I just need to bring my training software and do the training, which is already an insanely complicated job requiring special skills.
+2. 一个小而慢的共享文件系统（NFS？），从云端获取数据并保存检查点到云端
 
-2. Lots of nodes available for exclusive unlimited use
+3. 缓慢的节点间连接导致加速器利用率低
 
-3. Fast inter-node connectivity that doesn't bottleneck the accelerators and which isn't shared with other users
+4. 与其他用户共享节点间网络，这使得网络不稳定且不可预测
 
-4. Huge local super-fast NVME based shared filesystem that can fit datasets and checkpoints
+5. 超级复杂的云控制台，有无数的屏幕和步骤来设置即使是简单的事情
 
-5. Barebones Linux w/ SLURM and minimal software to be able to launch training jobs
+6. 无法快速更换出故障的硬件
 
-6. `sudo`er access to ease the work with a team of people
+7. 需要分时使用节点 - 训练作业之间有等待时间
 
+8. 有其他并发用户可能会用光整个磁盘，导致训练崩溃
 
+9. 无法杀死团队中其他人启动然后去睡觉的作业
 
-### ML Engineer's hell
+## 获取计算资源
 
-1. A cloud or in-house cluster, where you have to do everything - sysadmining, replacing hardware, dealing with outages, etc. And to do the training on top of that.
+获取计算资源主要有 3 种选择：
 
-2. A smallish slow shared filesystem (NFS?), with cloud to draw data from and checkpoint to
+- 在云上租用
+- 在 HPC 上获得分时使用权
+- 购买
 
-3. Slow inter-node leading to low accelerator utilization
+### 在云上租用
 
-4. Inter-node shared with other users which make the network erratic and unpredictable
+这是目前获取计算资源的主要方式。
 
-5. Super-complicated cloud console with gazillion of screens and steps to set even simple things up
+优点：
 
-6. Not being able to swap out failing hardware fast
+- 易于扩展或缩减集群规模
+- 几年后易于从旧硬件升级到新一代硬件
+- 集群管理可以轻松外包
 
-7. Needing to timeshare the nodes - with wait times between training jobs
+缺点：
 
-8. Having other concurrent users who might use up the whole disk, leading to trainings crashing
+- 昂贵，除非你为数百个加速器谈判长期（1-3年）合同
+- 你会被诱惑购买许多你可能需要或不需要的工具和服务
+- 无论你是否充分使用集群，你总是会被收费
 
-9. Not being able to kill jobs others on the team started and went to sleep
+### 使用 HPC
 
+HPC 并不多，因此可用资源有限。
 
+优点：
+- 为你管理 - 你所需要的只是你的训练软件和一些 [SLURM](../orchestration/slurm) 知识来启动作业
+- 通常由当地政府/大学赞助 - 可能会以更少的钱甚至免费完成工作（例如，我们在 [JeanZay HPC](http://www.idris.fr/eng/jean-zay/) 上免费训练了 [BLOOM-176B](https://huggingface.co/bigscience/bloom)！）
 
+缺点：
+- 需要与其他团队分时共享计算资源 == 作业时间短，中间可能有很长的等待时间 - 可能难以快速完成训练
+- 节点间网络可能不稳定，因为它将被其他团队使用
+- 必须遵守 HPC 的规则（例如，没有 `sudo` 访问权限和各种其他规则）
+- 在某种程度上，HPC 集群就是它本来的样子 - 你无法让网络更快，甚至安装某些软件也可能很棘手。
 
-## Getting compute
+### 购买硬件
 
-There are 3 main choices to where one gets compute:
+主要是大学购买和建立自己的集群，一些大公司也这样做。
 
-- Rent on the cloud
-- Get a timeshare on an HPC
-- Buy it
+优点：
 
+- 如果你可以 24/7 部署硬件超过几年，总成本将比租用便宜
+- 易于提供快速的本地存储 - 一个好的 NVME raid 会比在线存储便宜得多也快得多
 
-### Renting on the cloud
+缺点：
 
-This is currently the prevalent way of getting compute.
+- 购买后仅几年，你就会被过时的硬件所困扰 - 也许可以转售
+- 必须购买超出需要的数量 - 硬件容易损坏，尤其是在 24/7 使用时，RMA 可能需要数周时间
+- 必须聘请人才来管理内部解决方案
+- 必须解决冷却、电费、保险等问题
 
-Pros:
+### 管理计算资源
 
-- Easy to expand or contract the size of the cluster
-- Easy to upgrade from the old hardware generation to the new one in a few years
-- Cluster management could be easily outsourced
+- 除非你使用完全管理的 HPC 计算资源，否则你绝对需要聘请一名系统管理员。你可能会觉得你的 ML 工程师可以在他们的训练任务之间处理这些工作，但他们会浪费大量时间来管理磁盘空间、处理有问题的节点、要求用户遵守规则等。
 
-Cons:
+## 技术需求
 
-- Expensive, unless you negotiate a long term (1-3 year) contract for hundreds of accelerators
-- You will be tempted to buy many tools and services that you may or may not need
-- You always get charged whether you use your cluster fully or not
+### 你能足够快地为熔炉送料吗？
 
-
-### Using HPC
-
-There aren't that many HPCs out there and so the amount of available resources is limited.
-
-Pros:
-- Managed for you - all you need is your software to do the training and a bit of [SLURM](../orchestration/slurm) know-how to launch jobs
-- Often sponsored by the local government/university - probably could get the job done for less $$ or even free (e.g. we trained [BLOOM-176B](https://huggingface.co/bigscience/bloom) for free on [JeanZay HPC](http://www.idris.fr/eng/jean-zay/)!)
-
-Cons:
-- needing to time share compute with other teams == short job times with possible long wait times in between - could be difficult to finish training quickly
-- The inter-node network is likely to be unstable as it'll be used by other teams
-- Have to abide by the HPC's rules (e.g. no `sudo` access and various other rules to follow)
-- In a way the HPC cluster will be what it'll be - you can't make the network faster and often even getting some software installed can be tricky.
-
-
-### Buying hardware
-
-It's mainly universities that buy and build their own clusters, and some big companies do that too.
-
-Pros:
-
-- If you can deploy the hardware 24/7 for more than a few years the total cost will be cheaper than renting
-- Easy to provide fast local storage - a good NVME raid would be much cheaper and faster than online storage
-
-Cons:
-
-- You're stuck with the outdated hardware just a few years after it was purchased - might be able to resell
-- Must buy more than needed - Hardware tends to break, especially when it's used 24/7, RMA could take weeks
-- Have to hire talent to manage the in-house solution
-- Have to figure out cooling, electric costs, insurance, etc.
-
-
-
-### Managing compute
-
-- Unless you use a fully managed HPC compute you absolutely need to hire a sysadmin. It may feel that your ML engineers can swing that between their training jobs, but they will be losing a lot of time to managing disk space, dealing with problematic nodes, asking users to behave, etc.
-
-
-
-## The needs of technology
-
-### Can you feed the furnace fast enough?
-
-Imagine a steam locomotive - the engine is great, but if the [fireman](https://en.wikipedia.org/wiki/Fireman_(steam_engine)) isn't fast enough to shovel the coal in, the train won't move fast.
+想象一下蒸汽机车 - 引擎很棒，但如果[司炉](https://en.wikipedia.org/wiki/Fireman_(steam_engine))铲煤的速度不够快，火车就跑不快。
 
 ![](images/640px-Baureihe52Heizer.jpg)
 
-[source](https://commons.wikimedia.org/wiki/File:Baureihe52Heizer.jpg)
+[来源](https://commons.wikimedia.org/wiki/File:Baureihe52Heizer.jpg)
 
-This is the current state of ML hardware: The bottleneck is in moving bits and not the compute.
+这就是当前 ML 硬件的现状：瓶颈在于移动数据位而不是计算。
 
-- Accelerators get ~2x faster every 2 years ([Moore's law](https://en.wikipedia.org/wiki/Moore%27s_law))
-- Network and memory are not! Already now both are compute bottlenecks
-- IO can be another bottleneck if your DataLoader has to pull data from the cloud
-- CPU is fine as long as it has enough cpu-cores for DataLoader workers, and main processes
+- 加速器每 2 年速度提高约 2 倍（[摩尔定律](https://en.wikipedia.org/wiki/Moore%27s_law)）
+- 网络和内存并非如此！现在两者都已成为计算瓶颈
+- 如果你的 DataLoader 必须从云端拉取数据，IO 可能是另一个瓶颈
+- 只要有足够的 cpu 核心用于 DataLoader 工作进程和主进程，CPU 就没问题
 
-Corollary: research the whole machine and not just its engine.
+推论：研究整台机器，而不仅仅是它的引擎。
 
-a crazy idea: the older GPUs might do fine if you can actually feed them as fast as they can compute. And if you can get 3x of them at the same cost as the next generation GPU you might finish training sooner and a lower cost.
-
-
-
+一个疯狂的想法：如果你能以它们计算的速度为它们提供数据，旧的 GPU 可能会做得很好。如果你能以与下一代 GPU 相同的成本获得 3 个旧 GPU，你可能会更早以更低的成本完成训练。
 
 ### TFLOPS
 
-- Once you choose the architecture and the size of the model and how many tokens you want to train the model for you immediately know how much compute will be required to accomplish this goal. Specifically you can now calculate [how many floating point operations will be needed](../training/performance/README.md#tflops-as-a-performance-metric).
+- 一旦你选择了模型的架构和大小，以及你想要为模型训练多少个 token，你就能立即知道完成这个目标需要多少计算量。具体来说，你现在可以计算出[需要多少次浮点运算](../training/performance/README.md#tflops-as-a-performance-metric)。
 
-- All that is missing is comparing different compute providers to how many floating point operations their hardware can computes per secs (TFLOPS) and their cost per unit and now you can tell the total approximate cost of the training.
+- 所缺的只是比较不同计算提供商的硬件每秒可以计算多少浮点运算（TFLOPS）以及它们的单位成本，现在你就可以计算出训练的总近似成本。
 
-  1. Calculate the time needed to train given the TFLOPS of the considered solution:
-     `total_tflops_required / tflops_of_this_compute_unit = time_in_seconds`
-     Let's say it came to be 604800 secs or 7 days.
+  1. 根据所考虑解决方案的 TFLOPS 计算训练所需的时间：
+     `所需总 tflops / 该计算单元的 tflops = 以秒为单位的时间`
+     假设结果是 604800 秒或 7 天。
 
-  2. Look at the cost of using this compute solution for 7 days and now you know the total $$ to train this model.
+  2. 查看使用此计算解决方案 7 天的成本，现在你就知道了训练此模型的总 $$。
 
-  3. Look at other proposals and calculate the same - chose the best option.
+  3. 查看其他提议并进行相同的计算 - 选择最佳选项。
 
-- As mentioned earlier, time is of a huge importance, so you might still choose a more expensive solution if finishing the training sooner is important because you want to be first to market.
+- 如前所述，时间非常重要，因此如果更早完成训练很重要，因为你想成为第一个进入市场的，你可能仍会选择更昂贵的解决方案。
 
-Unfortunately, this math is only partially correct because the advertised peak TFLOPS are typically unachievable. The MFU section delves into it.
+不幸的是，这种计算只是部分正确，因为宣传的峰值 TFLOPS 通常是无法实现的。MFU 部分将对此进行深入探讨。
 
+### 模型 FLOPS 利用率 (MFU)
 
-### Model FLOPS Utilization (MFU)
+如上一节所述，一些（大多数？）供应商发布的峰值性能 TFLOPS 是不切实际的 - 它们无法实现。
 
-As mentioned in the previous section, some (most?) vendors publish unrealistic peak performance TFLOPS - they aren't possible to achieve.
+模型 FLOPS 利用率（MFU）是告诉我们加速器利用率有多好的指标。其计算方法如下：
 
-Model FLOPS Utilization (MFU) is the metric that tells us how well the accelerator is utilized. Here is how it is calculated:
+1. 通过计算单个训练迭代需要多少次浮点运算并将其除以该迭代所花费的秒数来测量实际 TFLOPS。
+2. 将实际 TFLOPS 除以宣传的 TFLOPS 以获得 MFU
 
-1. Measure the actual TFLOPS by calculating how many floating point operations a single training iteration takes and dividing that number by the number of seconds this iteration took.
-2. Divide the actual TFLOPS by advertised TFLOPS to get the MFU
+示例：假设您正在以 BFLOAT16 精度进行训练：
 
-Example: Let's say you're training in BFLOAT16 precision:
+- 如果单次迭代需要 624 Tera 浮点运算，并且运行时间为 4 秒，那么我们知道我们得到：`624/4=156` 实际 TFLOPS
+- 现在 BF16@A100 的[广告速度为 312TFLOPS](https://www.nvidia.com/en-us/data-center/a100/)，所以 `156/312=0.5` 得到 50% MFU。
 
-- If a single iteration requires 624 Tera floating point operations and it took 4 secs to run then we know that we get: `624/4=156` actual TFLOPS
-- now BF16@A100 is [advertised as 312TFLOPS](https://www.nvidia.com/en-us/data-center/a100/) so `156/312=0.5` gives us 50% MFU.
+实践中：
+- 对于 NVIDIA GPU，如果你在多节点设置上使用大型模型，MFU 超过 50%，你已经做得非常出色了
+- 最近更高效的可伸缩性解决方案的进步不断提高 MFU
+- 慢速网络和低效框架或未经优化的配置会降低 MFU
 
-Practically:
-- with NVIDIA GPUs if you're above 50% MFU on a multi-node setup with a large model you're already doing fantastic
-- recent advancements in more efficient scalability solutions keep on increasing MFU
-- slow networks and inefficient frameworks or untuned configuration lower MFU
+因此，一旦您知道了 MFU，您现在就可以调整上一节中的成本估算。在那个例子中，我们说训练需要 7 天，但如果 MFU 是 50%，这意味着训练需要 14 天。
 
-Therefore once you know the MFU you can now adjust the cost estimate from the previous section. In the example there we said it'll take 7 days to train, but if MFU is 50%, it means it'll take 14 days to train.
+### 移动比特
 
+为什么无法达到宣传的 TFLOPS？这是因为在加速器内存和计算之间移动数据需要时间，此外，将数据从磁盘和其他 GPU 移动到加速器内存需要更多时间。
 
-### Moving bits
+- 对于加速器内存，能做的并不多，因为它的带宽就是那样 - 只能编写更高效的软件来使数据更快地传入/传出加速器 - 提示：融合和自定义编写的内核（如 [torch.compile](https://pytorch.org/docs/stable/generated/torch.compile.html) 和 [flash attention](https://github.com/Dao-AILab/flash-attention)）
 
-Why can't the advertised TFLOPS achieved? It's because it takes time to move data between accelerator memory and compute and additionally it takes even more time to move data from disk and other gpus to the accelerator's memory.
+- 如果你只有一个 GPU 并且模型适合其内存，你就不需要担心网络 - 加速器内存是唯一的瓶颈。但是如果你必须[在多个 GPU 之间分片模型](../training/model-parallelism)，网络就成了瓶颈。
 
-- There is not much can be done about the accelerator memory since its bandwidth is what it is - one can only write more efficient software to make data move faster to/from the accelerator - hint: fused and custom written kernels (like [torch.compile](https://pytorch.org/docs/stable/generated/torch.compile.html) and [flash attention](https://github.com/Dao-AILab/flash-attention))
+- 节点内网络 - 非常快，但对于大型模型很难利用 - [张量并行](../training/model-parallelism#tensor-parallelism) 和 [序列并行](../training/model-parallelism#sequence-parallelism) 解决了部分问题。（[更多](../network/README.md#intra-node-networking)）。
 
-- If you only have a single GPU and the model fits its memory, you don't need to worry about the network - accelerator memory is the only bottleneck. But if you have [to shard the model across multiple GPUs](../training/model-parallelism) network becomes the bottleneck.
+- 节点间网络 - 在大多数服务器设置上通常太慢 - 因此这是需要研究的关键组件！高效的框架通过重叠计算和通信成功地部分隐藏了通信开销。但是如果通信时间比计算时间长，通信仍然是瓶颈。[更多](#inter-node-network)。
 
-- Intra-node Network - is very fast, but difficult to take advantage of for large models - [Tensor parallelism](../training/model-parallelism#tensor-parallelism) and [sequence parallelism](../training/model-parallelism#sequence-parallelism) address part of this problem. ([more](../network/README.md#intra-node-networking)).
+- 存储 IO 主要对为 DataLoader 工作进程提供数据和保存检查点很重要。[更多](#storage)。
 
-- Inter-node Network - typically is too slow on most server setups - thus this is the key component to research! Efficient frameworks succeed to partially hide the comms overhead by overlapping compute and comms. But if comms take longer than compute, the comms are still the bottleneck. [more](#inter-node-network).
+  1. 通常有足够的 DL 工作进程，DataLoader 增加的开销很小。
+  2. 在保存检查点时，除非使用某种异步保存解决方案，否则加速器会空闲，因此快速 IO 在这里至关重要。
 
-- Storage IO is important primarily for feeding the DataLoader workers and saving the checkpoints. [more](#storage).
+## 关键硬件组件
 
-  1. Typically with enough DL workers the DataLoader adds very little overhead.
-  2. While checkpoints are being saved the accelerators idle unless some async saving solution is used, so fast IO is crucial here
+### 加速器
 
+截至本文撰写时，以下是可用于训练、微调和推理 ML 模型的最常见加速器：
 
-## Key hardware components
+广泛可用：
 
-### Accelerators
+  * NVIDIA H200s 正在逐渐取代 A100s 和 H100s。H200s 拥有更多且更高效的 HBM，因此比 H100s 更具成本效益。
 
-As of this writing here are the most common accelerators that can be used for training, finetuning and inference ML models:
+可用，但会将你锁定：
 
-Widely available:
+  * Google TPU - 速度快！但成本是锁定在单一供应商和云中
 
-  * NVIDIA H200s are gradually replacing A100s and H100s. H200s have more of and a more efficient HBM and thus make them more cost-effective than H100s.
+新兴至普遍可用：
 
-Available, but locks you in:
+  * NVIDIA H200 - 比 H100 更快的 HBM 和更多内存 - 2024 年第四季度在部分云上提供（并非所有大型云都计划备货这些）。
 
-  * Google TPUs - fast! but the cost is a lock-in into a single vendor and cloud
+  * NVIDIA B200 和 GB200 - 正在开始出现。
 
-Emerging to general availability:
+  * AMD MI355X 正在 Neo 云上出现
 
-  * NVIDIA H200 - faster HBM and more memory than H100 - Q4-2024 on select clouds (not all big clouds are planning to stock on these).
+  * Intel Gaudi3 > H200 - 在 Intel 的云上可用
 
-  * NVIDIA B200 and GB200 - are starting to emerge.
+  * Amazon 的 Trainium2 < H100 在 AWS 上可用
 
-  * AMD MI355X is starting to emerge on Neo clouds
+  * GraphCore IPU - 非常难找到，如果能找到的话，曾在 paperspace 上短暂可用，但现在没有了。
 
-  * Intel Gaudi3 > H200 - is available on Intel's cloud
+  * Cerebras WaferScale Engine - 在 Cerebras 的云上可用
 
-  * Amazon's Trainium2 < H100 is available on AWS
+有关完整列表和最近宣布的加速器，请参阅[加速器](../compute/accelerator)。
 
-  * GraphCore IPU - very difficult to find if at all, was shortly available on paperspace but no more.
+#### 加速器互操作性
 
-  * Cerebras WaferScale Engine - available on Cerebras' cloud
+总的来说，大多数（所有？）加速器都受到 PyTorch 或 TensorFlow 等主要框架的支持，只要不使用任何特定于加速器的功能，相同的代码应该可以在任何地方运行，只需稍作修改。
 
-For the full list and more recently announced accelerators see [Accelerators](../compute/accelerator).
+例如，如果您的 PyTorch 应用程序调用 `torch.mm` - 它应该可以在任何地方工作，但如果它包含自定义 CUDA 内核，它将只在 NVIDIA GPU 上工作，也许在最近的 AMD MI 系列上也可以。
 
+- NVIDIA GPU：全部基于 [CUDA](https://developer.nvidia.com/cuda-toolkit)，大多数训练框架都支持。您可以轻松地在不同的 NVIDIA GPU 之间移动，大多数东西都会同样工作。
 
-#### Accelerator Interoperability
+- AMD MI250/MI300X：使用 [ROCm](https://pytorch.org/blog/pytorch-for-amd-rocm-platform-now-available-as-python-package/) 的 PyTorch 可以按原样运行大多数基于 CUDA 的软件。这确实是唯一能与 NVIDIA 堆栈互操作的加速器。
 
-In general most (all?) accelerators are supported by major frameworks like PyTorch or TensorFlow and the same code should run everywhere with small modifications as long as it doesn't use any accelerator-specific functionality.
+- Intel Gaudi2/Gaudi3：如果您使用 HF Transformers/Diffusers，您可以使用 [optimum-habana](https://github.com/huggingface/optimum-habana)。如果您使用 HF Trainer 与 NVIDIA GPU，切换到在 Gaudi2 上进行训练/推理应该相对容易。
 
-For example, if your PyTorch application calls `torch.mm` - it should work everywhere, but if it includes custom CUDA kernels it'll only work on NVIDIA GPUs and may be on the recent AMD MI-series.
+- GraphCore IPU：也可以通过 PyTorch 经由 [poptorch](https://github.com/graphcore/poptorch) 运行
 
-- NVIDIA GPUs: all based on [CUDA](https://developer.nvidia.com/cuda-toolkit), which most training frameworks support. You can easily moved between different NVIDIA GPUs and most things would work the same.
+- Cerebras：也正在通过 [Cerebras 软件平台 (CSoft) 经由 XLA](https://www.cerebras.net/blog/supporting-pytorch-on-the-cerebras-wafer-scale-engine/) 支持 PyTorch。
 
-- AMD MI250/MI300X: with PyTorch using [ROCm](https://pytorch.org/blog/pytorch-for-amd-rocm-platform-now-available-as-python-package/) you can run most CUDA-based software as is. This is really the only inter-operable accelerator with the NVIDIA stack.
+此外，一般来说，大多数 ML 代码都可以编译成跨平台格式，如 [Open Neural Network Exchange (ONNX)](https://en.wikipedia.org/wiki/Open_Neural_Network_Exchange)，它可以在各种加速器上运行。这种方法通常更多地用于推理工作负载。
 
-- Intel Gaudi2/Gaudi3: if you use HF Transformers/Diffusers you can use [optimum-habana](https://github.com/huggingface/optimum-habana). If you use HF Trainer with NVIDIA GPUs it should be relatively easy to switch to train/infer on Gaudi2.
+### 网络
 
-- GraphCore IPU: can also be run via PyTorch via [poptorch](https://github.com/graphcore/poptorch)
+- 如果您想训练一个无法容纳在单个加速器内存中的大型模型，您必须依靠节点内和节点间网络来同步多个加速器。
 
-- Cerebras: is also working on PyTorch support via [Cerebras Software Platform (CSoft) via XLA](https://www.cerebras.net/blog/supporting-pytorch-on-the-cerebras-wafer-scale-engine/).
+- 目前最大的问题是计算硬件的进步速度快于网络硬件，例如 NVIDIA NVLink 节点内（单向带宽）：
 
-Also in general most ML code could be compiled into cross-platform formats like [Open Neural Network Exchange (ONNX)](https://en.wikipedia.org/wiki/Open_Neural_Network_Exchange) which can be run on a variety of accelerators. This approach is typically used more often for inference workloads.
+| GPU | 计算<br>fp16<br>TFLOPS | 计算<br>加速比 | 节点内<br>GBps | 节点内<br>加速比 |
+| :--- | --: | --: | --: | --: |
+| V100 | 125 | 1 | 150 | 1 |
+| A100 | 312 | 2.5 | 300 | 2 |
+| H100 | 989 | 8 | 450 | 3 |
+| B200 | 2250 | 18 | 900 | 6 |
 
+- 你可以看到 A100 比 V100 快 2.5 倍，H100 比 A100 快约 3 倍。但 NVLink 的节点内速度每一代只增加了 150GBps。NVLink 5.0 的速度是 NVLink 4.0 的两倍，所以它在计算速度上有所追赶。但速度提升仍然不足。
 
-### Network
+- 此外，前 4 代 NVLink 使用相同的 NIC，单向带宽均为 25GBps。他们只是将链路数量加倍和三倍以提高速度。所以那项技术没有取得任何进展。
 
-- If you want to train a large model that doesn't fit onto a single accelerator's memory you have to rely on the intra- and inter-node networks to synchronize multiple accelerators.
+- 节点间的情况也好不到哪里去，大多数 NIC 的速度为 100 或 200Gbps，一些 400Gbps 的 NIC 开始出现。（相应地以 GBps 为单位：12.5、25 和 50）。这里也是同样的故事，一些解决方案提供数十个 NIC 以获得更高的速度。
 
-- The biggest issue right now is that compute hardware advancements move faster than networking hardware, e.g. for NVIDIA NVLink intra-node (unidirectional bandwidth):
+- 此外，对于 LLM 来说，有效载荷通常很大，以至于网络延迟对于训练来说通常可以忽略不计。但对于推理来说仍然非常重要。
 
-| GPU  | Compute<br>fp16<br>TFLOPS | Compute<br>speedup | Intra-node<br>GBps | Intra-node<br>speedup |
-| :--- |                      --: |                --: |                --: |                   --: |
-| V100 |                      125 |                  1 |                150 |                     1 |
-| A100 |                      312 |                2.5 |                300 |                     2 |
-| H100 |                      989 |                  8 |                450 |                     3 |
-| B200 |                     2250 |                 18 |                900 |                     6 |
+#### 节点内网络
 
-- You can see that A100 was 2.5 faster than V100, and H100 is ~3x faster than A100. But the intra-node speed of NVLink has only increased by 150GBps each generation. NVLink 5.0 doubled the speed over NVLink 4.0 so it catches up a little bit with the compute speed ups. But the speed up is still insufficient.
+- 注意字节与比特。1Byte = 8bits。1GBps = 8Gbps。
 
-- Moreover, the first 4 generations of NVLink use identical NICs of the same 25GBps unidirectional bandwidth. They have just doubled and tripled the number of links to speed things up. So there was 0 progress in that technology.
+- 如果您需要在多个节点之间减少比特（例如梯度），那么最慢的链接（节点间）决定了整体吞吐量，因此节点内速度无关紧要
 
-- The inter-node situation isn't any better with most NICs there doing 100 or 200Gbps, and some 400Gbps are starting to emerge. (correspondingly in GBps: 12.5, 25 and 50). It's the same story here, some solutions provide dozens of NICs to get to higher speeds.
+- [张量并行](../training/model-parallelism#tensor-parallelism) 和 [序列并行](../training/model-parallelism#sequence-parallelism) 必须保持在节点内才能高效 - 只有在节点内速度快的情况下才有意义
 
-- Also typically with LLMs the payload is so large that network latency is often negligible for training. It's still quite important for inference.
+NVIDIA：
 
+- 基于 NVIDIA 的计算节点配备 50GBps 双工 NVLInk
 
-#### Intra-node Network
-
-- Pay attention to bytes vs bits. 1Byte = 8bits. 1GBps = 8Gbps.
-
-- If you need to reduce bits (e.g. gradients) across multiple nodes, it's the slowest link (Inter-node) that defines the overall throughput, so intra-node speed doesn't matter then
-
-- [Tensor parallelism](../training/model-parallelism#tensor-parallelism) and [sequence parallelism](../training/model-parallelism#sequence-parallelism) have to remain within the node to be efficient - only makes sense with fast intra-node speed
-
-NVIDIA:
-
-- NVIDIA-based compute nodes come with 50GBps duplex NVLInk
-
-- Some have a lot of NVLinks, others less but typically plenty w/ at least 450GBps (3.6Tbps) unidirectional bandwidth for H100, 300GBps for A100 nodes
+- 有些有很多 NVLink，其他的较少，但通常足够，H100 至少有 450GBps (3.6Tbps) 的单向带宽，A100 节点有 300GBps
 
 Intel Gaudi2:
 
-- 8 x 21 NICs of 100GbE RoCE v2 ROMA for a total of 2.1TBps
+- 8 x 21 个 100GbE RoCE v2 ROMA 网卡，总计 2.1TBps
 
-[More details](../network/README.md#intra-node-networking)
+[更多详情](../network/README.md#intra-node-networking)
 
+#### 节点间网络
 
-#### Inter-node Network
+- 比节点内网络慢一个数量级
 
-- An order of magnitude slower than Intra-node
+- 你会看到从 50Gbps 到 3200 Gbps 的各种速度
 
-- You will see a wide range of speeds from 50Gbps to 3200 Gbps
+- 你需要比计算更快地减少梯度和其他比特，以避免加速器空闲
 
-- You need to reduce gradients and other bits faster than compute to avoid idling accelerators
+- 你通常最多只能获得宣传速度的 80%。例如，如果你被告知你得到 800Gbps，预计约为 640Gbps。
 
-- You typically get at most 80% of advertised speed. e.g., if you are told you get 800Gbps, expect ~640Gbps.
+- 如果转向 fp8，H100 比 V100 快 18 倍
 
-- If moving to fp8 H100 is 18x faster than V100
-
-- We are yet to see if 3200Gbps for H100s will be enough to keep high MFU.
-
-
-* Practically less than 3x but it's a good estimate
-
-[More details](../network/README.md#inter-node-networking).
+- 我们尚未看到 H100 的 3200Gbps 是否足以保持高 MFU。
 
 
+* 实际上不到 3 倍，但这是一个很好的估计
 
-### Storage
+[更多详情](../network/README.md#inter-node-networking)。
 
-There are 3 distinct Storage IO needs in the ML workload:
+### 存储
 
-1. You need to be able to feed the DataLoader fast - (super fast read, don't care about fast write) - requires sustainable load for hours and days
-2. You need to be able to write checkpoints fast - (super fast write, fastish read as you will be resuming a few times) - requires burst writing - you want super fast to not block the training for long (unless you use some sort of cpu offloading to quickly unblock the training)
-3. You need to be able to load and maintain your codebase - (medium speed for both reading and writing) - this also needs to be shared since you want all nodes to see the same codebase - as it happens only during the start or resume it'll happen infrequently
+在 ML 工作负载中，有 3 种不同的存储 IO 需求：
 
-- Most of the time you're being sold 80% of what you paid. If you want a reliable 100TBs you need to rent 125TBs or your application may fail to write long before the disk is full.
+1. 您需要能够快速为 DataLoader 提供数据 - （超快读取，不关心快速写入） - 需要持续数小时和数天的可持续负载
+2. 您需要能够快速写入检查点 - （超快写入，快速读取，因为您将恢复几次） - 需要突发写入 - 您希望速度超快，以免长时间阻塞训练（除非您使用某种 cpu 卸载来快速解除训练阻塞）
+3. 您需要能够加载和维护您的代码库 - （中速读写） - 这也需要共享，因为您希望所有节点都看到相同的代码库 - 因为它只在开始或恢复时发生，所以会不经常发生
 
-- Shared Distributed Filesystem:
-  1. non-parallel shared file systems can be extremely slow if you have a lot of small files (=Python!)
-  2. You want Parallel FS like GPFS (IBM Spectrum Scale) or Lustre (Open Source)
+- 大多数时候，你买到的东西只有你付钱买的 80%。如果你想要一个可靠的 100TB，你需要租用 125TB，否则你的应用程序可能会在磁盘满之前很久就写入失败。
 
-[More details](../storage/README.md).
+- 共享分布式文件系统：
+  1. 如果你有大量小文件（=Python！），非并行共享文件系统可能会非常慢
+  2. 你想要并行文件系统，如 GPFS (IBM Spectrum Scale) 或 Lustre (开源)
 
+[更多详情](../storage/README.md)。
 
-### CPU Memory
+### CPU 内存
 
-You need enough memory for:
+您需要足够的内存用于：
 
-- 2-3 possibly DL workers per Accelerator (so 16-24 processes with 8 accelerators per node)
+- 每个加速器 2-3 个可能的 DL 工作进程（因此每个节点 8 个加速器，就有 16-24 个进程）
 
-- Even more memory for DL workers if you pull data from the cloud
+- 如果您从云端拉取数据，DL 工作进程需要更多内存
 
-- Enough memory to load the model if you can't load to accelerator directly
+- 如果您不能直接加载到加速器，需要足够的内存来加载模型
 
-- Often used for accelerator memory offloading - extends accelerator's memory by swapping out the currently unused layers - if that's the target use, then the more cpu memory is available - the better!
-
-
+- 通常用于加速器内存卸载 - 通过换出当前未使用的层来扩展加速器的内存 - 如果这是目标用途，那么可用的 cpu 内存越多越好！
 
 ### CPU
 
-This is probably the least worrisome component.
+这可能是最不令人担忧的组件。
 
-- Most clouds provide beefy CPUs with plenty of cpu cores
+- 大多数云提供商都提供强大的 CPU 和充足的 cpu 内核
 
-- You need to have enough cores to run 2-3 DL workers +1 per gpu - so at least 30 cores
+- 你需要有足够的内核来运行每个 gpu 2-3 个 DL 工作进程 +1 - 所以至少需要 30 个内核
 
-- Even more cores for DL workers if you have complex and/or slow DL transforms (CV)
+- 如果你有复杂和/或缓慢的 DL 转换（CV），则需要更多内核用于 DL 工作进程
 
-- Most of the compute happens on GPUs
+- 大部分计算都在 GPU 上进行
 
+## 用你的 ML 即时数学给别人留下深刻印象
 
-## Impress others with your ML instant math
+### 在 5 秒内说出你需要多少个 GPU
 
+- 半混合精度训练：`模型大小（B）* 18 * 1.25 / GPU 内存大小（GB）`
 
-### Tell how many GPUs do you need in 5 secs
+- 半精度推理：`模型大小（B）* 2 * 1.25 / GPU 内存大小（GB）`
 
-- Training in half mixed-precision: `model_size_in_B * 18 * 1.25 / gpu_size_in_GB`
+这是最低要求，更多是为了有更大的批量大小和更长的序列长度。
 
-- Inference in half precision: `model_size_in_B * 2 * 1.25 /  gpu_size_in_GB`
+以下是细分：
 
-That's the minimum, more to have a bigger batch size and longer sequence length.
+- 训练：8 字节用于 AdamW 状态，4 字节用于梯度，4+2 字节用于权重
 
-Here is the breakdown:
+- 推理：2 字节用于权重（如果使用量化，则为 1 字节）
 
-- Training: 8 bytes for AdamW states, 4 bytes for grads, 4+2 bytes for weights
+- 1.25 是 25% 用于激活（非常非常近似）
 
-- Inference: 2 bytes for weights (1 byte if you use quantization)
+例如：我们以一个 80B 参数的模型和 80GB 的 GPU 为例，计算我们需要多少个 GPU 用于：
 
-- 1.25 is 25% for activations (very very approximate)
+- 训练：至少 23 个 GPU `80*18*1.25/80`
+- 推理：至少 3 个 GPU `80*2*1.25/80`
 
-For example: Let's take an 80B param model and 80GB GPUs and calculate how many of them we will need for:
+[更多详情](../training/performance/README.md#anatomy-of-models-memory-usage)。
 
-- Training: at least 23 GPUs `80*18*1.25/80`
-- Inference: at least 3 GPUs `80*2*1.25/80`
+## 需要注意的陷阱
 
-[More details](../training/performance/README.md#anatomy-of-models-memory-usage).
+在您驾驭这个非常复杂的 AI 行业时，需要注意以下几点：
 
+### 对"将尽合理努力……"的合同说不
 
+- 如果你的合同没有明确的交付成果（时间和性能），如果你为得不到的东西付费，或者没有按时收到，或者根本收不到，不要感到惊讶
 
+- 在签署包含"我们将尽合理努力……"等条款的合同之前要非常小心。
 
-## Traps to be aware of
+   你上一次去超市面包区发现一块半生不熟的面团，上面写着"我们尽了合理的努力来烤这个面包，但可惜，你看到的就是你得到的"是什么时候？
 
-As you navigate this very complex AI industry here are some thing to be aware of:
+   但无论出于何种原因，创建一个法律合同是可以接受的，其中提供商既不提供交货日期也不提供性能指标，并且不规定当这些承诺未兑现时他们将如何赔偿。
 
-### Say no to "will make a reasonable effort to ..." contracts
+### 警惕硬件和软件锁定场景
 
-- If you contract doesn't have clear deliverables (time and performance) don't be surprised if you paid for something you won't receive in time you need it or not at all
+- 一些云提供商会让你使用非常专有的工具或硬件，这会让你以后很难离开，因为如果你离开，你将不得不重新装备一切
+- 考虑一下如果该提供商被证明不令人满意，或者他们没有能力满足您日益增长的需求，那么迁移到另一个提供商的成本会是多少。
+- 如果您租用一个带有通用 Linux 系统和通用开源工具的集群，那么从一个提供商迁移到另一个提供商应该很简单，因为几乎所有东西都可以开箱即用
 
-- Be very careful before you sign a contract that includes clauses that start with "we will make a reasonable effort to ...".
+- 显然，如果您选择需要特定硬件才能工作的定制软件，并且您无法在其他任何地方租用此硬件，那么您就是在为自己设置锁定
 
-   When was the last time you went to the bread section of the supermarket and found a lump of half-baked dough with a note "we made a reasonable effort to bake this bread, but alas, what you see is what you get"?
+### 不要买你真正不需要的东西
 
-   But for whatever reason it's acceptable to create a legal contract where the provider provides neither delivery dates nor performance metrics and doesn't provide stipulations for what will they do in recompense when those promises aren't fulfilled.
+- 云提供商大多拥有相同的通用硬件，这导致利润率非常微薄，因此为了赚大钱，他们发明产品，然后试图说服您需要购买它们。有时您确实需要这些产品，但通常情况下并非如此。另请参阅上一节关于锁定的内容，因为专有产品通常意味着部分锁定。
 
+- 通常很容易观察到寻求问题解决方案的解决方案的三步营销技巧：
 
-### Beware of hardware and software lock-in scenarios
+  1. 通过给予巨额折扣甚至付费使用，说服几位备受尊敬的客户使用提供商的专有产品
+  2. 利用步骤 1 中的那些作为社会认可的杠杆，吸引更多的皈依者
+  3. 然后通过告诉他们 80% 的客户（1+2）都在使用这些神奇的产品，来网罗其余的挣扎者
 
-- Some cloud providers will make you use very proprietary tools or hardware that will make it very difficult for you to leave down the road because you will have to retool everything if you leave
-- Consider what would be the cost of moving to a different provider should this provider prove to be not satisfactory or if they don't have a capacity to fulfill your growing needs.
-- If you rent a cluster with a generic Linux box with generic open source tools it should be trivial to move from one provider to another as almost everything would work out of the box
+在营销这些产品时，重要的是：
 
-- Obviously if you choose compute that requires custom software that works for that hardware only and you can't rent this hardware anywhere else you're setting yourself up for a lock-in
+- 提及它们与其他十几种产品的配合程度，因为现在你不仅仅是购买一个产品，而是购买一个完整的专有产品领域。
+- 使用看起来非常漂亮的复杂图表，说明事物如何相互插入，并在有人提出难题之前迅速转到下一张幻灯片。
 
-### Don't buy what you don't really need
+HPC 可能是值得学习的一组计算提供商 - 他们没有资金来创建新产品，因此他们创造性地使用主要是通用的开源工具来满足所有需求，并在绝对需要时添加一些自定义编写的软件。
 
-- The cloud providers have mostly the same generic hardware, which leads to a very slim $$ margin and so in order to make big $$ they invent products and then try to convince you that you need to buy them. Sometimes you actually need those products, but very often not. See also the previous section on lock-in, since proprietary products usually mean a partial lock-in.
+## 不请自来的建议
 
-- Often it's easy to observe the 3 step marketing technique for solutions that seek a problem to solve:
+最后，我想分享一些关于如何稍微改善日常 AI 战场体验的见解。
 
-  1. Convince a couple of well respected customers to use the provider's proprietary products by giving them huge discounts or even pay them to use them
-  2. Use those in step 1 as the social approval lever to reel in more converts
-  3. Then scoop the rest of the strugglers by telling them that 80% of your customers (1+2) use these amazing products
+### FOMO 与避免抑郁
 
-When marketing these products it's important:
+如果你阅读 Twitter 和其他类似的 ML 相关信息流，你肯定会感到错失恐惧症（FOMO），因为每周可能至少有一个伟大的新模型发布，每天都有多篇论文发表，你的同行每隔几分钟就会发布他们很酷的成就。
 
-- to mention how well they work with a dozen of other products, since now you're not buying into a single product but into a whole proprietary product-sphere.
-- to use really nice looking complicated diagrams of how things plug into each other, and move really fast to the next slide before someone asks a difficult question.
+我们正在处理**非常复杂**的技术，只有少数人能够吸收如此多的新材料并理解/整合它。
 
-HPCs are probably a good group of compute providers to learn from - they have no funds to create new products and so they creatively address all their needs using mostly generic open source tools with some custom written software added when absolutely needed.
+这可能会非常令人沮丧和泄气。
 
+我每周大约看一两次推特来应对这种情况。我主要以广播模式使用推特 - 也就是说，如果我有什么要分享的，我就会发布它，只关注可能出现的后续问题。
 
-## Unsolicited advice
+通常所有重要的新闻都是通过其他人传到我这里的。
 
-To conclude I thought I'd share some insights to how one could slightly improve their daily AI battlefield experience.
+### 不要试图知道一切
 
-### FOMO and avoiding depression
+AI 领域的创新速度是惊人的。不可能知道所有关于 AI 的事情。我敢说，对我们大多数人来说，甚至不可能知道其中的 10%。
 
-If you read Twitter and other similar ML-related feeds you're guaranteed to feel the fear of missing out, since there is probably at least one new great model getting released weekly and multiple papers are getting published daily and your peers will publish their cool achievements every few minutes.
+我很早就意识到了这一点，我不再关注大多数公告、教程、主题演讲等。每当我有一个新的需求时，我就会研究它，我发现我需要什么，我必须小心不要试图学习与手头目标无关的其他事情。
 
-We are dealing with **very complex** technology and there is a small handful of people who can absorb that much new material and understand / integrate it.
+所以我实际上知道的很少，但我深入研究过的东西，我在一段时间内知道得很好，后来我甚至忘记了（这就是为什么我写这些笔记 - 这样我就可以轻松找到我已经研究过的东西）。
 
-This can be extremely depressing and discouraging.
+所以如果你问我什么，我很有可能不知道，但我的优点是，如果你给我时间，我可以弄清楚并给出答案或开发一个解决方案。
 
-I deal with it by looking at twitter about once or twice a week. I mostly use Twitter in broadcast mode - that is if I have something to share I post it and only watch for possible follow up questions.
+### 使用半成品软件时不要自责
 
-Usually all the important news reach me through other people.
+由于 ML 领域正处于一场巨大的竞赛中，许多开源软件都是半成品、文档不佳、测试不佳，有时支持也很差。因此，如果你认为通过重用他人编写的软件可以节省时间，那么预计要花费数小时到数周的时间来弄清楚如何让它工作。然后在更新破坏它时保持它的工作。
 
+下一个问题是，这些软件中的大多数都依赖于其他软件，而这些软件通常也同样糟糕。我开始修复一些集成问题，结果发现一个依赖包有问题，而这个依赖包又有另一个来自另一个包的问题，这种情况并不少见。这可能会非常令人沮丧和泄气。人们试图通过代码重用来节省时间，但最终却花费很长时间来弄清楚如何让它工作。至少如果我编写自己的软件，我会感到有趣，这是一个创造性的过程，而试图让别人的软件工作则不然。
 
-### Don't try to know everything
+所以归根结底，我们仍然最好重用别人的软件，只是它会带来情感上的代价和疲惫。
 
-The pace of innovation in the field of AI is insane. It's not possible to know all-things-AI. I'd dare to say it's not possible to know even 10% of it for most of us.
+所以首先，试着找到一种方法，如果不是你写的软件不工作，不要自责。如果你想一想，那些问题不是你造成的。
 
-I realized this very early one and I stopped paying attention to most announcements, tutorials, keynotes, etc. Whenever I have a new need I research it and I discover what I need and I have to be careful not to try to learn other things not pertinent to the goal at hand.
-
-So I actually know very little, but what I have researched in depth I know quite well for some time and later I forget even that (that's why I write these notes - so that I can easily find what I have already researched).
-
-So if you ask me something, chances are that I don't know it, but the saving grace for me is that if you give me time I can figure it out and give the answer or develop a solution.
-
-
-### Don't beat yourself up when using half-baked software
-
-Because the ML field is in a huge race, a lot of the open source software is half-baked, badly documented, badly tested, at times poorly supported. So if you think you can save time by re-using software written by others expect spending hours to weeks trying to figure out how to make it work. And then keeping it working when the updates break it.
-
-The next problem is that most of this software depends on other software which often can be just as bad. It's not uncommon where I start fixing some integration problem, just to discover a problem in a dependent package, which in its turn has another problem from another package. This can be extremely frustrating and discouraging. One tries to save time by code reuse, but ends up spending a long time figuring out how to make it work. At least if I write my own software I have fun and it's a creative process, trying to make other people's software work is not.
-
-So at the end of the day we are still better off re-using other people's software, except it comes at an emotional price and exhaustion.
-
-So first of all, try to find a way not to beat yourself up if the software you didn't write doesn't work. If you think about it, those problems aren't of your creation.
-
-Learning how to [debug efficiently](https://github.com/stas00/the-art-of-debugging/tree/master/methodology) should also make this process much less painful.
+学习如何[高效调试](https://github.com/stas00/the-art-of-debugging/tree/master/methodology)也应该使这个过程不那么痛苦。

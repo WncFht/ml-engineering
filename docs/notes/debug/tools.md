@@ -1,30 +1,31 @@
 ---
-title: tools
+title: 工具
 createTime: 2025/07/03 00:05:24
+permalink: /notes/notes/7b8u3irq/
 ---
-# Debug Tools
+# 调试工具
 
-## git-related tools
+## git 相关工具
 
 
-### Useful aliases
+### 有用的别名
 
-Show a diff of all files modified in the current branch against HEAD:
+显示当前分支中所有已修改文件与 HEAD 的差异：
 ```
 alias brdiff="def_branch=\$(git symbolic-ref refs/remotes/origin/HEAD | sed 's@^refs/remotes/origin/@@'); git diff origin/\$def_branch..."
 ```
 
-Same, but ignore white-space differences, adding `--ignore-space-at-eol` or `-w`:
+同上，但忽略空白差异，添加 `--ignore-space-at-eol` 或 `-w`：
 ```
 alias brdiff-nows="def_branch=\$(git symbolic-ref refs/remotes/origin/HEAD | sed 's@^refs/remotes/origin/@@'); git diff -w origin/\$def_branch..."
 ```
 
-List all the files that were added or modified in the current branch compared to HEAD:
+列出当前分支中与 HEAD 相比所有已添加或修改的文件：
 ```
 alias brfiles="def_branch=\$(git symbolic-ref refs/remotes/origin/HEAD | sed 's@^refs/remotes/origin/@@'); git diff --name-only origin/\$def_branch..."
 ```
 
-Once we have the list, we can now automatically open an editor to load just added and modified files:
+一旦我们有了列表，我们现在可以自动打开一个编辑器来只加载已添加和修改的文件：
 ```
 alias bremacs="def_branch=\$(git symbolic-ref refs/remotes/origin/HEAD | sed 's@^refs/remotes/origin/@@'); emacs \$(git diff --name-only origin/\$def_branch...) &"
 ```
@@ -32,156 +33,156 @@ alias bremacs="def_branch=\$(git symbolic-ref refs/remotes/origin/HEAD | sed 's@
 
 ### git-bisect
 
-(note to self: this is a sync from `the-art-of-debugging/methodology.md` which is the true source)
+（自我提醒：这是从 `the-art-of-debugging/methodology.md` 同步过来的，那里是真正的来源）
 
-The discussed next approach should work for any revision control system that supports bisecting. We will use `git bisect` in this discussion.
+接下来讨论的方法应该适用于任何支持二分法的版本控制系统。我们将在本次讨论中使用 `git bisect`。
 
-`git bisect` helps to quickly find the commit that caused a certain problem.
+`git bisect` 有助于快速找到导致某个问题的提交。
 
-Use case: Say, you were using `transformers==4.33.0` and then you needed a more recent feature so you upgraded to the bleed-edge `transformers@main` and your code broke. There could have been hundreds of commits between the two versions and it'd be very difficult to find the right commit that lead to the breakage by going through all the commits. Here is how you can quickly find out which commit was the cause.
+用例：假设您正在使用 `transformers==4.33.0`，然后您需要一个更新的功能，所以您升级到了最前沿的 `transformers@main`，然后您的代码坏了。在这两个版本之间可能有数百个提交，通过遍历所有提交来找到导致问题的正确提交会非常困难。以下是您如何快速找出哪个提交是罪魁祸首的方法。
 
-footnote: HuggingFace Transformers is actually pretty good at not breaking often, but given its complexity and enormous size it happens nevertheless and the problems are fixed very quickly once reported. Since it's a very popular Machine Learning library it makes for a good debugging use case.
+脚注：HuggingFace Transformers 在不经常破坏方面实际上做得很好，但鉴于其复杂性和庞大的规模，这种情况仍然会发生，一旦报告，问题会很快得到解决。由于它是一个非常流行的机器学习库，因此它是一个很好的调试用例。
 
-Solution: Bisecting all the commits between the known good and bad commits to find the one commit that's to blame.
+解决方案：在已知的良好提交和不良提交之间对所有提交进行二分查找，以找到应该负责的那个提交。
 
-We are going to use 2 shell terminals: A and B. Terminal A will be used for `git bisect` and terminal B for testing your software. There is no technical reason why you couldn't get away with a single terminal but it's easier with 2.
+我们将使用 2 个 shell 终端：A 和 B。终端 A 将用于 `git bisect`，终端 B 将用于测试您的软件。没有技术上的理由您不能只使用一个终端，但使用 2 个会更容易。
 
-1. In terminal A fetch the git repo and install it in devel mode (`pip install -e .`) into your Python environment.
+1. 在终端 A 中，获取 git 仓库并以开发模式（`pip install -e .`）将其安装到您的 Python 环境中。
 ```
 git clone https://github.com/huggingface/transformers
 cd transformers
 pip install -e .
 ```
-Now the code of this clone will be used automatically when you run your application, instead of the version you previously installed from PyPi or Conda or elsewhere.
+现在，当您运行您的应用程序时，将自动使用此克隆的代码，而不是您之前从 PyPi 或 Conda 或其他地方安装的版本。
 
-Also for simplicity we assume that all the dependencies have already been installed.
+为了简单起见，我们还假设所有依赖项都已安装。
 
-2. next we launch the bisecting - In terminal A, run:
+2. 接下来我们启动二分查找 - 在终端 A 中，运行：
 
 ```
 git bisect start
 ```
 
-3. Discover the last known good and the first known bad commits
+3. 发现最后一个已知的良好提交和第一个已知的不良提交
 
-`git bisect` needs just 2 data points to do its work. It needs to know one earlier commit that is known to work (`good`) and one later commit that is know to break (`bad`). So if you look at the sequence of commits on a given branch it'd have 2 known points and many commits around these that are of an unknown quality:
+`git bisect` 只需要 2 个数据点就可以工作。它需要知道一个已知可以工作的早期提交 (`good`) 和一个已知会破坏的后期提交 (`bad`)。所以如果你看一个给定分支上的提交序列，它会有 2 个已知点和许多围绕这些点的未知质量的提交：
 
 ```
 ...... orig_good ..... .... .... .... ..... orig_bad ....
 ------------->---------------->----------------> time
 ```
 
-So for example if you know that `transformers==4.33.0` was good and `transformers@main` (`HEAD`) is bad, find which commit is corresponding to the tag `4.33.0` by visiting [the releases page](https://github.com/huggingface/transformers/releases) and searching for `4.33.0`. We find that it was commit with SHA [`5a4f340d`](https://github.com/huggingface/transformers/commit/5a4f340df74b42b594aedf60199eea95cdb9bed0).
+因此，例如，如果您知道 `transformers==4.33.0` 是好的，而 `transformers@main` (`HEAD`) 是坏的，请访问[发布页面](https://github.com/huggingface/transformers/releases)并搜索 `4.33.0`，找出与标签 `4.33.0` 对应的提交。我们发现它是带有 SHA [`5a4f340d`](https://github.com/huggingface/transformers/commit/5a4f340df74b42b594aedf60199eea95cdb9bed0) 的提交。
 
-footnote: typically the first 8 hex characters are enough to have a unique identifier for a given repo, but you can use the full 40 character string.
+脚注：通常前 8 个十六进制字符足以作为给定仓库的唯一标识符，但您可以使用完整的 40 个字符的字符串。
 
 
-So now we specify which is the first known good commit:
+所以现在我们指定哪个是第一个已知的良好提交：
 ```
 git bisect good 5a4f340d
 ```
 
-and as we said we will use `HEAD` (latest commit) as the bad one, in which case we can use `HEAD` instead finding out the corresponding SHA string:
+正如我们所说，我们将使用 `HEAD`（最新提交）作为坏的提交，在这种情况下，我们可以使用 `HEAD` 而不是找出相应的 SHA 字符串：
 ```
 git bisect bad HEAD
 ```
 
-If however you know it broke in `4.34.0` you can find its latest commit as explained above and use that instead of `HEAD`.
+但是，如果您知道它在 `4.34.0` 中坏了，您可以如上所述找到它的最新提交并使用它而不是 `HEAD`。
 
-We are now all set at finding out the commit that broke things for you.
+我们现在已经准备好找出是哪个提交给您带来了麻烦。
 
-And after you told `git bisect` the good and the bad commits it has already switched to a commit somewhere in the middle:
+在你告诉 `git bisect` 好和坏的提交之后，它已经切换到了中间的某个提交：
 
 ```
 ...... orig_good ..... .... current .... .... ..... orig_bad ........
 ------------->--------------->---------------->----------------> time
 ```
 
-You can run `git log` to see which commit it has switched to.
+您可以运行 `git log` 来查看它切换到了哪个提交。
 
-And to remind, we installed this repo as `pip install -e .` so the Python environment is instantly updated to the current commit's code version.
+提醒一下，我们以 `pip install -e .` 的方式安装了这个仓库，所以 Python 环境会立即更新到当前提交的代码版本。
 
-4. Good or bad
+4. 好还是坏
 
-The next stage is telling `git bisect` if the current commit is `good` or `bad`:
+下一阶段是告诉 `git bisect` 当前提交是 `good` 还是 `bad`：
 
-To do so in terminal B run your program once.
+为此，在终端 B 中运行一次您的程序。
 
-Then in terminal A run:
+然后在终端 A 中运行：
 ```
 git bisect bad
 ```
-If it fails, or:
+如果失败，或者：
 ```
 git bisect good
 ```
-if it succeeds.
+如果成功。
 
 
-If, for example, if the result was bad, `git bisect` will internally flag the last commit as new bad and will half the commits again, switching to a new current commit:
+例如，如果结果是坏的，`git bisect` 会在内部将最后一个提交标记为新的坏提交，并再次将提交减半，切换到一个新的当前提交：
 ```
 ...... orig_good ..... current .... new_bad .... ..... orig_bad ....
 ------------->--------------->---------------->----------------> time
 ```
 
-And, vice versa, if the result was good, then you will have:
+反之，如果结果是好的，那么你将得到：
 ```
 ...... orig_good ..... .... new_good .... current ..... orig_bad ....
 ------------->--------------->---------------->----------------> time
 ```
 
-5. Repeat until no more commits left
+5. 重复直到没有剩余的提交
 
-Keep repeating step 4 step until the problematic commit is found.
+继续重复第 4 步，直到找到有问题的提交。
 
-Once you finished bisecting, `git bisect` will tell you which commit was responsible for breaking things.
+完成二分查找后，`git bisect` 会告诉您是哪个提交导致了问题。
 
 ```
 ...... orig_good ..... .... last_good first_bad .... .. orig_bad ....
 ------------->--------------->---------------->----------------> time
 ```
-If you followed the little commit diagrams, it'd correspond for the`first_bad` commit.
+如果您遵循了小的提交图，它将对应于 `first_bad` 提交。
 
-You can then go to `https://github.com/huggingface/transformers/commit/` and append the commit SHA to that url which will take you to the commit, (e.g. `https://github.com/huggingface/transformers/commit/57f44dc4288a3521bd700405ad41e90a4687abc0` and which will then link to the PR from which it originated. And then you can ask for help by following up in that PR.
+然后您可以转到 `https://github.com/huggingface/transformers/commit/` 并在该 url 后附加提交 SHA，这将带您到该提交（例如 `https://github.com/huggingface/transformers/commit/57f44dc4288a3521bd700405ad41e90a4687abc0`），然后它将链接到它起源的 PR。然后您可以通过在该 PR 中跟进寻求帮助。
 
-If your program doesn't take too long to run even if there are thousands of commits to search, you are facing `n` bisecting steps from `2**n` so 1024 commits can be searched in 10 steps.
+如果您的程序运行时间不长，即使有数千个提交要搜索，您也面临着 `2**n` 的 `n` 个二分步骤，因此 1024 个提交可以在 10 个步骤中搜索完。
 
-If your program is very slow, try to reduce it to something small - ideally a small reproduction program that shows the problem really fast. Often, commenting out huge chunks of code that you deem irrelevant to the problem at hand, can be all it takes.
+如果您的程序非常慢，请尝试将其简化为一些小的东西 - 理想情况下是一个能够快速显示问题的小型重现程序。通常，注释掉您认为与当前问题无关的大块代码就足够了。
 
-If you want to see the progress, you can ask it to show the current range of remaining commits to check with:
+如果您想查看进度，可以要求它显示当前要检查的剩余提交范围：
 ```
 git bisect visualize --oneline
 ```
 
-6. Clean up
+6. 清理
 
-So now restore the git repo clone to the same state you started from (most likely `HEAD) with:
+所以现在将 git 仓库克隆恢复到您开始时的相同状态（很可能是 `HEAD`）：
 ```
 git bisect reset
 ```
 
-and possible reinstall the good version of the library while you report the issue to the maintainers.
+在向维护人员报告问题时，可能会重新安装库的良好版本。
 
-Sometimes, the issue emerges from intentional backward compatibility breaking API changes, and you might just need to read the project's documentation to see what has changed. For example, if you switched from `transformers==2.0.0` to `transformers==3.0.0` it's almost guaranteed that your code will break, as major numbers difference are typically used to introduce major API changes.
+有时，问题源于有意的向后不兼容的 API 更改，您可能只需要阅读项目的文档以查看发生了什么变化。例如，如果您从 `transformers==2.0.0` 切换到 `transformers==3.0.0`，几乎可以肯定您的代码会中断，因为主版本号的差异通常用于引入重大的 API 更改。
 
 
-7. Possible problems and their solutions:
+7. 可能的问题及其解决方案：
 
-a. skipping
+a. 跳过
 
-If for some reason the current commit cannot be tested - it can be skipped with:
+如果由于某种原因无法测试当前提交 - 可以使用以下命令跳过：
 ```
 git bisect skip
 ```
-and it `git bisect` will continue bisecting the remaining commits.
+然后 `git bisect` 将继续对剩余的提交进行二分查找。
 
-This is often helpful if some API has changed in the middle of the commit range and your program starts to fail for a totally different reason.
+如果某个 API 在提交范围中间发生了变化，并且您的程序开始因为完全不同的原因而失败，这通常很有帮助。
 
-You might also try to make a variation of the program that adapts to the new API, and use it instead, but it's not always easy to do.
+您也可以尝试制作一个适应新 API 的程序变体，并改用它，但这并不总是那么容易。
 
-b. reversing the order
+b. 颠倒顺序
 
-Normally git expects `bad` to be after `good`.
+通常 git 期望 `bad` 在 `good` 之后。
 
 
 ```
@@ -189,24 +190,24 @@ Normally git expects `bad` to be after `good`.
 ------------->--------------->---------------->----------------> time
 ```
 
-Now, if `bad` happens before `good` revision order-wise and you want to find the first revision that fixed a previously existing problem - you can reverse the definitions of `good` and `bad` - it'd be confusing to work with overloaded logic states, so it's recommended to use a new set of states instead - for example, `fixed` and `broken` - here is how you do that.
+现在，如果 `bad` 在 `good` 修订版之前，并且您想找到第一个修复了先前存在的问题的修订版 - 您可以颠倒 `good` 和 `bad` 的定义 - 使用重载的逻辑状态会令人困惑，因此建议改用一组新的状态 - 例如，`fixed` 和 `broken` - 以下是操作方法。
 
 ```
 git bisect start --term-new=fixed --term-old=broken
 git bisect fixed
 git bisect broken 6c94774
 ```
-and then use:
+然后使用：
 ```
 git fixed / git broken
 ```
-instead of:
+代替：
 ```
 git good / git bad
 ```
 
-c. complications
+c. 复杂情况
 
-There are sometimes other complications, like when different revisions' dependencies aren't the same and for example one revision may require `numpy=1.25` and the other `numpy=1.26`. If the dependency package versions are backward compatible installing the newer version should do the trick. But that's not always the case. So sometimes one has to reinstall the right dependencies before re-testing the program.
+有时还有其他复杂情况，例如当不同修订版的依赖关系不相同时，例如一个修订版可能需要 `numpy=1.25`，而另一个需要 `numpy=1.26`。如果依赖包版本向后兼容，安装较新的版本应该可以解决问题。但情况并非总是如此。因此，有时在重新测试程序之前，必须重新安装正确的依赖项。
 
-Sometimes, it helps when there is a range of commits that are actually broken in a different way, you can either find a range of `good...bad` commits that isn't including the other bad range, or you can try to `git bisect skip` the other bad commits as explained earlier.
+有时，当有一系列实际上以不同方式损坏的提交时，它会有所帮助，您可以找到一个不包含其他坏范围的 `good...bad` 提交范围，或者您可以尝试如前所述 `git bisect skip` 其他坏提交。

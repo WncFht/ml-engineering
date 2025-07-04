@@ -1,42 +1,43 @@
 ---
 title: make-tiny-models-tokenizers-datasets
 createTime: 2025/07/03 00:05:24
+permalink: /notes/notes/6cbi6zvt/
 ---
-# Faster debug and development with tiny models, tokenizers and datasets
+# 使用微型模型、分词器和数据集加快调试和开发速度
 
-If you're debugging problems and develop with full sized models and tokenizers you're likely not working in a very efficient way. Not only it's much more difficult to solve problem, the amount of waiting to get the program to restart and to get to the desirable point can be huge - and cumulatively this can be a huge drain on one's motivation and productivity, not talking about the resolution taking much longer, if at all.
+如果您使用全尺寸模型和分词器进行调试和开发，您的工作效率可能不高。不仅解决问题要困难得多，而且等待程序重新启动并到达所需点的时间也可能很长 - 从累积的角度来看，这可能会极大地消耗一个人的积极性和生产力，更不用说如果可能的话，解决问题需要更长的时间。
 
-The solution is simple:
+解决方案很简单：
 
-**Unless you're testing the quality of a model, always use a tiny random model with potentially tiny tokenizer.**
+**除非您正在测试模型的质量，否则请始终使用带有潜在微型分词器的微型随机模型。**
 
-Moreover, large models often require massive resources, which are typically expensive and can also can make a debugging process super complicated. For example any debugger can handle a single process, but if your model doesn't fit and require some sort of [parallelization](../training/model-parallelism) that requires multiple processes - most debuggers will either break or have issue giving you what you need. The ideal development environment is one process and a tiny model is guaranteed to fit on an even cheapest single smallest consumer GPU available. You could even use the free [Google Colab](https://colab.research.google.com/) to do development in a pinch if you have no GPUs around.
+此外，大型模型通常需要大量资源，这些资源通常很昂贵，并且也可能使调试过程变得非常复杂。例如，任何调试器都可以处理单个进程，但如果您的模型不适合并需要某种需要多个进程的[并行化](../training/model-parallelism)，大多数调试器要么会崩溃，要么无法为您提供所需的功能。理想的开发环境是单个进程和一个保证可以容纳在最便宜的单个最小消费级 GPU 上的微型模型。如果您身边没有 GPU，您甚至可以使用免费的 [Google Colab](https://colab.research.google.com/) 来进行紧急开发。
 
-So the updated ML development mantra then becomes:
+因此，更新后的 ML 开发口头禅变成了：
 
-- the larger the model the better the final product generates
-- the smaller the model the quicker the final product's training can be started
+- 模型越大，最终产品的生成效果越好
+- 模型越小，最终产品的训练开始得越快
 
-footnote: the recent research shows that larger isn't always better, but it's good enough to convey the importance of my communication.
+脚注：最近的研究表明，越大并不总是越好，但这足以传达我的沟通的重要性。
 
-Once your code is working, do switch to the real model to test the quality of your generation. But even in this case still try first the smallest model that produces a quality result. Only when you can see that the generation is mostly right use the largest model to validate if your work has been perfect.
+一旦您的代码正常工作，请切换到真实模型以测试您的生成质量。但即使在这种情况下，也请先尝试能产生高质量结果的最小模型。只有当您能看到生成基本正确时，才使用最大的模型来验证您的工作是否完美。
 
-## Making a tiny model
+## 制作一个微型模型
 
-Important: given their popularity and the well designed simple API I will be discussing HF [`transformers`](https://github.com/huggingface/transformers/) models. But the same principle can be applied to any other model.
+重要提示：鉴于它们的受欢迎程度和设计良好的简单 API，我将讨论 HF [`transformers`](https://github.com/huggingface/transformers/) 模型。但同样的原则可以应用于任何其他模型。
 
-TLDR: it's trivial to make a tiny HF `transformers` model:
+简而言之：制作一个微型 HF `transformers` 模型很简单：
 
-1. Fetch the config object of a full size model
-2. Shrink the hidden size and perhaps a few other parameters that contribute to the bulk of the model
-3. Create a model from that shrunken config
-4. Save this model. Done!
+1. 获取全尺寸模型的配置对象
+2. 缩小隐藏大小以及可能有助于模型体积的其他一些参数
+3. 从缩小的配置中创建模型
+4. 保存此模型。完成！
 
-footnote: It's critical to remember that this will generate a random model, so don't expect any quality from its output.
+脚注：重要的是要记住，这将生成一个随机模型，所以不要期望其输出有任何质量。
 
-footnote: These notes were written with HF Transformers models in mind. If you're using a different modeling library you may have to adapt some of these things.
+脚注：这些笔记是针对 HF Transformers 模型编写的。如果您使用的是不同的建模库，您可能需要调整其中一些内容。
 
-Now let's go through the actual code and convert ["google/mt5-small"](https://huggingface.co/google/mt5-small/tree/main) into its tiny random counterpart.
+现在让我们来看一下实际代码，并将 ["google/mt5-small"](https://huggingface.co/google/mt5-small/tree/main) 转换为其微型随机对应物。
 
 ```
 from transformers import MT5Config, MT5ForConditionalGeneration
@@ -58,11 +59,11 @@ print(f"num of params {very_small_model.num_parameters()}")
 very_small_model.save_pretrained(mname_very_small)
 ```
 
-As you can see it's trivial to do. And you can make it even smaller if you don't need the hidden size to be at least 64. For example try 8 - you just need to make sure that the number of attention heads isn't larger than hidden size.
+如您所见，这很容易做到。如果您不需要隐藏大小至少为 64，您可以使其更小。例如，尝试 8 - 您只需要确保注意力头的数量不大于隐藏大小即可。
 
-Also please note that you don't need any GPUs to do that and you could do this even on a huge 176B parameter model like [BLOOM-176B](https://huggingface.co/bigscience/bloom). Since you never load the actual original model, except its config object.
+另外请注意，您不需要任何 GPU 来执行此操作，您甚至可以在像 [BLOOM-176B](https://huggingface.co/bigscience/bloom) 这样的 176B 参数的巨大模型上执行此操作。因为您从不加载实际的原始模型，只加载其配置对象。
 
-Before modifying the config you can dump the original parameters and choose to shrinks more dimensions. For example, using less layers makes it even smaller and easier to debug. So here is what you can do instead:
+在修改配置之前，您可以转储原始参数并选择缩小更多维度。例如，使用更少的层可以使其更小，更容易调试。所以您可以这样做：
 
 ```
 config.update(dict(
@@ -76,15 +77,15 @@ config.update(dict(
 ))
 ```
 
-The original ["google/mt5-small"](https://huggingface.co/google/mt5-small/tree/main) model file was 1.2GB. With the above changes (and vocab shrinking as explained in the following sections) we got it down to 126MB.
+原始的 ["google/mt5-small"](https://huggingface.co/google/mt5-small/tree/main) 模型文件为 1.2GB。通过上述更改（以及后续章节中解释的词汇表缩小），我们将其缩小到 126MB。
 
-If you're dealing with a multi-level nested config, you will have to update each sub-level's config object separately. For example in [IDEFICS](https://huggingface.co/HuggingFaceM4/idefics-9b/blob/main/config.json) we have 1 main and 2 nested objects:
+如果您正在处理多级嵌套配置，则需要分别更新每个子级的配置对象。例如，在 [IDEFICS](https://huggingface.co/HuggingFaceM4/idefics-9b/blob/main/config.json) 中，我们有 1 个主对象和 2 个嵌套对象：
 ```
 config
 config.perceiver_config
 config.vision_config
 ```
-If you wanted to shrink this model you'd want to update `config` and `config.vision_config` with smaller values:
+如果您想缩小此模型，您需要使用较小的值更新 `config` 和 `config.vision_config`：
 ```
 config.update(dict(
     hidden_size=64,
@@ -95,39 +96,39 @@ config.update(dict(
     max_sequence_length=64,
 
 ))
-# sub object needs to be updated directly
+# 子对象需要直接更新
 config.vision_config.update(dict(embed_dim=64))
 ```
-See [idefics-make-tiny-model.py](tiny-scripts/idefics-make-tiny-model.py) for a fully working script (I didn't bother adding the vocab shrinking as I'm just demonstrating how to update nested config objects here).
+有关完整的可用脚本，请参阅 [idefics-make-tiny-model.py](tiny-scripts/idefics-make-tiny-model.py)（我没有费心添加词汇表缩小，因为我只是在这里演示如何更新嵌套配置对象）。
 
-We can then further halve our tiny model size by converting the model to fp16 or bf16 (depending on the goal) before saving it:
+然后我们可以通过在保存前将模型转换为 fp16 或 bf16（取决于目标）来进一步将我们的微型模型大小减半：
 
 ```
-very_small_model.half() # convert to fp16
-#very_small_model.bfloat16() # convert to bf16
+very_small_model.half() # 转换为 fp16
+#very_small_model.bfloat16() # 转换为 bf16
 very_small_model.save_pretrained(mname_very_small)
 ```
-this takes us to 64M file.
+这使我们得到了一个 64M 的文件。
 
-So you could stop here and your program will start much much faster already.
+所以你可以在这里停下来，你的程序已经可以更快地启动了。
 
-And there is one more step you could do to make it truly tiny.
+还有一步你可以做，让它真正变得微小。
 
-What we haven't shrunken so far is the vocabulary dimension so 64x250k (hidden*vocab) is still huge. Granted this 250k vocab model is not typical - normally models models' vocab is ~30-50k, but even 30k is a lot if we want the model to be truly tiny.
+到目前为止，我们还没有缩小词汇维度，所以 64x250k (hidden*vocab) 仍然是巨大的。当然，这个 250k 词汇模型不是典型的 - 通常模型的词汇在 30-50k 左右，但即使是 30k，如果我们想要模型真正微小，也是很大的。
 
-So next we will look into various techniques to shrinking the tokenizer, as it defines our vocab size.
+所以接下来我们将研究各种缩小分词器的技术，因为它定义了我们的词汇大小。
 
-## Making a tiny tokenizer
+## 制作一个微小的分词器
 
-This task varies between a relatively simple procedure and a much more complex workout depending on the underlying tokenizer.
+这个任务的难易程度从一个相对简单的过程到一个更复杂的锻炼，这取决于底层分词器。
 
-The following recipes have come from a few awesome tokenizer experts at Hugging Face, which I then adapted to my needs.
+以下食谱来自 Hugging Face 的几位了不起的分词器专家，然后我根据我的需要对它们进行了调整。
 
-You probably don't really need to understand how these work until you actually need them, therefore if you're reading this for the first time you can safely jump over these to [Making a tiny model with a tiny tokenizer](#making-a-tiny-model-with-a-tiny-tokenizer).
+在您真正需要它们之前，您可能并不需要真正理解这些是如何工作的，因此，如果您是第一次阅读本文，可以安全地跳过这些内容，直接进入[使用微型分词器制作微型模型](#making-a-tiny-model-with-a-tiny-tokenizer)。
 
-### Anthony Moi's version
+### Anthony Moi 的版本
 
-[Anthony Moi](https://github.com/n1t0)'s tokenizer shrinker:
+[Anthony Moi](https://github.com/n1t0) 的分词器缩减器：
 
 ```
 import json
@@ -162,7 +163,7 @@ tokenizer._tokenizer = Tokenizer.from_str(json.dumps(tokenizer_json))
 tokenizer.save_pretrained(".")
 ```
 
-I later discovered that gpt2 seems to have a special token `"<|endoftext|>"` stashed at the very end of the vocab, so it gets dropped and code breaks. So I hacked it back in with:
+后来我发现 gpt2 似乎在词汇表的最后藏了一个特殊标记 `"<|endoftext|>"`，所以它被丢弃了，代码也坏了。所以我用以下代码把它加了回来：
 ```
 if "gpt2" in mname:
         new_vocab = { token: i for token, i in vocab.items() if i < vocab_keep_items-1 }
@@ -172,9 +173,9 @@ if "gpt2" in mname:
 ```
 
 
-### Lysandre Debut's version
+### Lysandre Debut 的版本
 
-[Lysandre Debut](https://github.com/LysandreJik)' shrinker using `train_new_from_iterator`:
+[Lysandre Debut](https://github.com/LysandreJik) 使用 `train_new_from_iterator` 的缩减器：
 
 ```
 from transformers import AutoTokenizer
@@ -193,7 +194,7 @@ training_corpus = [
 new_tokenizer = tokenizer.train_new_from_iterator(training_corpus, vocab_size=vocab_keep_items)
 new_tokenizer.save_pretrained("small-tokenizer")
 ```
-but this one requires a training corpus, so I had an idea to cheat and train the new tokenizer on its own original vocab which gave me:
+但这个需要一个训练语料库，所以我想到了一个作弊的方法，用它自己的原始词汇来训练新的分词器，结果是：
 
 ```
 from transformers import AutoTokenizer
@@ -209,26 +210,26 @@ new_tokenizer = tokenizer.train_new_from_iterator(training_corpus, vocab_size=vo
 new_tokenizer.save_pretrained("small-tokenizer")
 ```
 
-which is almost perfect, except it now doesn't have any information about the frequency for each word/char (that's how most tokenizers compute their vocab, which if you need this info you can fix by
-having each key appearing `len(vocab) - ID times`, i.e.:
+这几乎是完美的，只是它现在没有任何关于每个单词/字符频率的信息（大多数分词器都是这样计算它们的词汇表的），如果你需要这些信息，你可以通过
+让每个键出现 `len(vocab) - ID` 次来解决：
 
 ```
 training_corpus = [ (k for i in range(vocab_len-v)) for k,v in vocab.items() ]
 ```
-which will make the script much much longer to complete.
+这将使脚本完成的时间长得多。
 
-But for the needs of a tiny model (testing) the frequency doesn't matter at all.
+但对于一个微型模型（测试）的需求来说，频率根本不重要。
 
 
 
-### Hack the tokenizer file approach
+### 破解分词器文件的方法
 
-Some tokenizers can be be just manually truncated at the file level, e.g. let's shrink Llama2's tokenizer to 3k items:
+有些分词器可以直接在文件级别进行截断，例如，让我们将 Llama2 的分词器缩小到 3k 项：
 
 ```
-# Shrink the orig vocab to keep things small (just enough to tokenize any word, so letters+symbols)
-# ElectraTokenizerFast is fully defined by a tokenizer.json, which contains the vocab and the ids,
-# so we just need to truncate it wisely
+# 缩小原始词汇表以保持小巧（刚好能对任何单词进行分词，所以字母+符号）
+# ElectraTokenizerFast 完全由一个 tokenizer.json 定义，其中包含词汇表和 id，
+# 所以我们只需要明智地截断它
 import subprocess
 import shlex
 from transformers import LlamaTokenizerFast
@@ -239,53 +240,53 @@ vocab_keep_items = 3000
 tokenizer_fast = LlamaTokenizerFast.from_pretrained(mname)
 tmp_dir = f"/tmp/{mname}"
 tokenizer_fast.save_pretrained(tmp_dir)
-# resize tokenizer.json (vocab.txt will be automatically resized on save_pretrained)
+# 调整 tokenizer.json（vocab.txt 将在 save_pretrained 时自动调整大小）
 # perl  -0777 -pi -e 's|(2999).*|$1},"merges": []}}|msg' tokenizer.json # 0-indexed, so vocab_keep_items-1!
 closing_pat = '},"merges": []}}'
 cmd = (f"perl -0777 -pi -e 's|({vocab_keep_items-1}).*|$1{closing_pat}|msg' {tmp_dir}/tokenizer.json")
 #print(f"Running:\n{cmd}")
 result = subprocess.run(shlex.split(cmd), capture_output=True, text=True)
-# reload with modified tokenizer
+# 使用修改后的分词器重新加载
 tokenizer_fast_tiny = LlamaTokenizerFast.from_pretrained(tmp_dir)
 tokenizer_fast_tiny.save_pretrained(".")
 ```
-Please remember that the outcome is only useful for functional testing - not quality work.
+请记住，结果仅对功能测试有用 - 不适用于质量工作。
 
-Here is the full version of [make_tiny_model.py](https://huggingface.co/stas/tiny-random-llama-2/blob/main/make_tiny_model.py) which includes both the model and the tokenizer shrinking.
+这是 [make_tiny_model.py](https://huggingface.co/stas/tiny-random-llama-2/blob/main/make_tiny_model.py) 的完整版本，其中既包括模型又包括分词器的缩小。
 
 
-### SentencePiece vocab shrinking
+### SentencePiece 词汇表缩小
 
-First clone SentencePiece into a parent dir:
+首先将 SentencePiece 克隆到父目录中：
 ```
 git clone https://github.com/google/sentencepiece
 ```
-Now to the shrinking:
+现在进行缩小：
 ```
-# workaround for fast tokenizer protobuf issue, and it's much faster too!
+# 变通方法解决快速分词器 protobuf 问题，而且速度也快得多！
 os.environ["PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION"] = "python"
 
 from transformers import XLMRobertaTokenizerFast
 
 mname = "xlm-roberta-base"
 
-# Shrink the orig vocab to keep things small
+# 缩小原始词汇表以保持小巧
 vocab_keep_items = 5000
 tmp_dir = f"/tmp/{mname}"
-vocab_orig_path = f"{tmp_dir}/sentencepiece.bpe.model" # this name can be different
+vocab_orig_path = f"{tmp_dir}/sentencepiece.bpe.model" # 这个名字可能不同
 vocab_short_path = f"{tmp_dir}/spiece-short.model"
-# HACK: need the sentencepiece source to get sentencepiece_model_pb2, as it doesn't get installed
+# HACK: 需要 sentencepiece 源码来获取 sentencepiece_model_pb2，因为它没有被安装
 sys.path.append("../sentencepiece/python/src/sentencepiece")
 import sentencepiece_model_pb2 as model
 tokenizer_orig = XLMRobertaTokenizerFast.from_pretrained(mname)
 tokenizer_orig.save_pretrained(tmp_dir)
 with open(vocab_orig_path, 'rb') as f: data = f.read()
-# adapted from https://blog.ceshine.net/post/trim-down-sentencepiece-vocabulary/
+# 改编自 https://blog.ceshine.net/post/trim-down-sentencepiece-vocabulary/
 m = model.ModelProto()
 m.ParseFromString(data)
-print(f"Shrinking vocab from original {len(m.pieces)} dict items")
+print(f"从原始的 {len(m.pieces)} 个词典项中缩小词汇表")
 for i in range(len(m.pieces) - vocab_keep_items): _ = m.pieces.pop()
-print(f"new dict {len(m.pieces)}")
+print(f"新词典 {len(m.pieces)}")
 with open(vocab_short_path, 'wb') as f: f.write(m.SerializeToString())
 m = None
 
@@ -294,77 +295,76 @@ tokenizer_fast_tiny.save_pretrained(".")
 ```
 
 
-## Making a tiny model with a tiny tokenizer
+## 用微小的分词器制作一个微小的模型
 
-So now you can shrink the vocab size to as small as the tokenizer allows, that is you need to have at least enough tokens to cover the target alphabet and special characters, and usually 3-5k tokens is more than enough.  Sometimes you could make it even small, after all the original ASCII charset has only 128 characters.
+所以现在你可以将词汇表大小缩小到分词器允许的最小程度，也就是说，你至少需要有足够的标记来覆盖目标字母表和特殊字符，通常 3-5k 个标记就足够了。有时你甚至可以做得更小，毕竟原始的 ASCII 字符集只有 128 个字符。
 
-If we continue the MT5 code from earlier in this chapter and add the tokenizer shrinking code from the previous section, we end up with this script [mt5-make-tiny-model.py](https://huggingface.co/stas/mt5-tiny-random/blob/main/mt5-make-tiny-model.py)
-and when we run it - our end model file is truly tiny - 3.34 MB in size! As you can see the script also has code to validate that the model can actually work with the modified tokenizer. The results will be garbage, but the intention is to test that the new model and the tokenizer are functional.
+如果我们继续本章前面的 MT5 代码，并添加前几节的分词器缩小代码，我们最终会得到这个脚本 [mt5-make-tiny-model.py](https://huggingface.co/stas/mt5-tiny-random/blob/main/mt5-make-tiny-model.py)，当我们运行它时——我们最终的模型文件非常小——只有 3.34 MB！正如您所看到的，该脚本还包含验证模型是否可以实际使用修改后的分词器的代码。结果将是垃圾，但目的是测试新模型和分词器是否功能正常。
 
-Here is another example  [fsmt-make-super-tiny-model.py](https://huggingface.co/stas/tiny-wmt19-en-ru/blob/main/fsmt-make-super-tiny-model.py) - here you can see I'm creating a totally new tiny vocab from scratch.
+这是另一个例子 [fsmt-make-super-tiny-model.py](https://huggingface.co/stas/tiny-wmt19-en-ru/blob/main/fsmt-make-super-tiny-model.py) - 在这里你可以看到我正在从头开始创建一个全新的微小词汇表。
 
-I also recommend to always store the building scripts with the model, so that you could quickly fix things or make similar versions of the model.
+我也建议总是将构建脚本与模型一起存储，以便您可以快速修复问题或制作类似版本的模型。
 
-Also be aware that since HF `transformers` needs tiny models for their testing, you are very likely to already find one for each architecture available mostly from
-https://huggingface.co/hf-internal-testing (except they didn't include the code of how they were made, but you can now figure it out based on these notes).
+另外请注意，由于 HF `transformers` 需要微型模型进行测试，您很可能已经可以为每个架构找到一个，主要来自
+https://huggingface.co/hf-internal-testing（只是他们没有包含如何制作它们的代码，但您现在可以根据这些笔记弄清楚）。
 
-Another hint: if you need a slightly different tiny model, you can also start with an already existing tiny model and adapt it instead. Since it's random it's really only about getting the right dimensions. For example if the tiny model you found has 2 layers but you need 8, just resave it with this larger dimension and you're done.
-
+另一个提示：如果您需要一个稍微不同的微型模型，您也可以从一个已经存在的微型模型开始并进行调整。由于它是随机的，所以实际上只关乎获得正确的维度。例如，如果您找到的微型模型有 2 层，但您需要 8 层，只需用这个更大的维度重新保存它就可以了。
 
 
 
-## Making a tiny dataset
 
-Similar to models and tokenizers it helps to have a handy tiny version of a dataset you work with a lot. As usual this won't help with quality testing, but it's perfect for launching your program really fast.
+## 制作一个微小的数据集
 
-footnote: the impact of using a tiny dataset won't be as massive as using a tiny model, if you're using already pre-indexed Arrow file datasets, since those are already extremely fast. But say you want the iterator to finish an epoch in 10 steps. Instead of editing your code to truncate the dataset, you could just use a tiny dataset instead.
+与模型和分词器类似，拥有一个方便的微型版本的数据集，您经常使用它会很有帮助。像往常一样，这无助于质量测试，但它非常适合快速启动您的程序。
 
-This process of making a tiny dataset is somewhat more difficult to explain because it'd depend on the builder of the original model, which can be quite different from each other, but perhaps you can correlate my recipes to your datasets.
+脚注：如果您使用的是已经预先索引的 Arrow 文件数据集，那么使用微型数据集的影响不会像使用微型模型那样巨大，因为这些数据集已经非常快了。但是，比如说，您希望迭代器在 10 个步骤内完成一个 epoch。与其编辑您的代码来截断数据集，不如直接使用一个微型数据集。
 
-But the concept is still very simple:
+制作微型数据集的过程有点难以解释，因为它取决于原始模型的构建者，而这些构建者可能彼此大相径庭，但也许您可以将我的方法与您的数据集联系起来。
 
-1. Clone the full dataset git repo
-2. Replace its full data tarball with a tiny one that contains just a few samples
-3. Save it - Done!
+但这个概念仍然非常简单：
 
-Here are some examples:
+1. 克隆完整的数据集 git 仓库
+2. 将其完整的数据 tarball 替换为一个只包含几个样本的微型 tarball
+3. 保存它 - 完成！
+
+以下是一些示例：
 
 - [stas/oscar-en-10k](https://huggingface.co/datasets/stas/oscar-en-10k/blob/main/oscar-en-10k.py)
 - [stas/c4-en-10k](https://huggingface.co/datasets/stas/c4-en-10k/blob/main/c4-en-10k.py)
 - [stas/openwebtext-10k](https://huggingface.co/datasets/stas/openwebtext-10k/blob/main/openwebtext-10k.py)
 
-In all of these I took the original tarball, grabbed the first 10k records, tarred it back, used this smaller tarball and that was that. The rest of the builder script remained mostly the same.
+在所有这些中，我拿了原始的 tarball，抓取了前 10k 条记录，重新打包，使用了这个更小的 tarball，就这样。构建脚本的其余部分基本保持不变。
 
-And here are some examples of synthetic datasets, where instead of just shrinking the original tarball, I untar'ed it, manually chose the representative examples and then wrote a script to build any size of desired dataset based on those few representative samples:
-- [stas/general-pmd-synthetic-testing](https://huggingface.co/datasets/stas/general-pmd-synthetic-testing/blob/main/general-pmd-synthetic-testing.py) and the [unpacker](https://huggingface.co/datasets/stas/general-pmd-synthetic-testing/blob/main/general-pmd-ds-unpack.py)
-- [stas/cm4-synthetic-testing](https://huggingface.co/datasets/stas/cm4-synthetic-testing/blob/main/cm4-synthetic-testing.py) - and the [unpacker](https://huggingface.co/datasets/stas/cm4-synthetic-testing/blob/main/m4-ds-unpack.py)
+这里有一些合成数据集的例子，我不是简单地缩小原始的 tarball，而是解压它，手动选择有代表性的例子，然后写一个脚本来根据这些少数有代表性的样本构建任何大小的所需数据集：
+- [stas/general-pmd-synthetic-testing](https://huggingface.co/datasets/stas/general-pmd-synthetic-testing/blob/main/general-pmd-synthetic-testing.py) 和 [解包器](https://huggingface.co/datasets/stas/general-pmd-synthetic-testing/blob/main/general-pmd-ds-unpack.py)
+- [stas/cm4-synthetic-testing](https://huggingface.co/datasets/stas/cm4-synthetic-testing/blob/main/cm4-synthetic-testing.py) - 和 [解包器](https://huggingface.co/datasets/stas/cm4-synthetic-testing/blob/main/m4-ds-unpack.py)
 
-These are also the complex examples where each sample is more than a text entry, but may have multiple text entries and images as well.
+这些也是复杂的例子，其中每个样本不仅仅是一个文本条目，还可能有多个文本条目和图像。
 
-The unpacker is what expands each complex multi-record sample into its own sub-directory, so that now you can easily go and tweak it to your liking. You can add image, remove them, make text records smaller, etc.. You will also notice that I'm shrinking the large images into tiny 32x32 images, so again I'm applying the important principle of tiny across all dimensions that don't break the requirements of the target codebase.
+解包器是将每个复杂的多记录样本扩展到其自己的子目录中，这样您现在就可以轻松地根据自己的喜好进行调整。您可以添加图像、删除它们、使文本记录更小等。您还会注意到我正在将大图像缩小为微小的 32x32 图像，所以再次，我正在应用在所有不破坏目标代码库要求的维度上使用微小的重要原则。
 
-And then the main script uses that structure to build a dataset of any desired length.
+然后主脚本使用该结构来构建一个任何所需长度的数据集。
 
-And here is for example the instructions of deploying these scripts for [stas/general-pmd-synthetic-testing](https://huggingface.co/datasets/stas/general-pmd-synthetic-testing/):
+例如，这里是为 [stas/general-pmd-synthetic-testing](https://huggingface.co/datasets/stas/general-pmd-synthetic-testing/) 部署这些脚本的说明：
 
 ```
-# prep dataset repo
+# 准备数据集仓库
 https://huggingface.co/new-dataset => stas/general-pmd-synthetic-testing
 git clone https://huggingface.co/datasets/stas/general-pmd-synthetic-testing
 cd general-pmd-synthetic-testing
 
-# select a few seed records so there is some longer and shorter text, records with images and without,
-# a few variations of each type
+# 选择一些种子记录，以便有一些较长和较短的文本，有图像和没有图像的记录，
+# 每种类型的几个变体
 rm -rf data
 python general-pmd-ds-unpack.py --dataset_name_or_path \
 general_pmd/image/localized_narratives__ADE20k/train/00000-00002 --ids 1-10 --target_path data
 
 cd data
 
-# shrink to 32x32 max, keeping ratio
+# 缩小到最大 32x32，保持比例
 mogrify -format jpg -resize 32x32\> */*jpg
 
-# adjust one record to have no image and no text
+# 将一条记录调整为没有图像和文本
 cd 1
 rm image.jpg text.txt
 touch image.null text.null
@@ -372,33 +372,33 @@ cd -
 
 cd ..
 
-# create tarball
+# 创建 tarball
 tar -cvzf data.tar.gz data
 
-# complete the dataset repo
-echo "This dataset is designed to be used in testing. It's derived from general-pmd/localized_narratives__ADE20k \
-dataset" >> README.md
+# 完成数据集仓库
+echo "该数据集旨在用于测试。它源自 general-pmd/localized_narratives__ADE20k \
+数据集" >> README.md
 
-# test dataset
+# 测试数据集
 cd ..
 datasets-cli test general-pmd-synthetic-testing/general-pmd-synthetic-testing.py --all_configs
 ```
 
-I also recommend to always store the building scripts with the dataset, so that you could quickly fix things or make similar versions of the dataset.
+我也建议总是将构建脚本与数据集一起存储，以便您可以快速修复问题或制作类似版本的数据集。
 
-Similar to tiny models, you will find many tiny datasets under https://huggingface.co/hf-internal-testing.
-
-
-## Conclusion
-
-While in the domain of ML we have the dataset, the model and the tokenizer - each of which can be made tiny and enable super-speed development with low resource requirements, if you're coming from a different industry you can adapt the ideas discussed in this chapter to your particular domain's artifacts/payloads.
+与微型模型类似，您会在 https://huggingface.co/hf-internal-testing 下找到许多微型数据集。
 
 
-## Backup of all scripts in this chapter
+## 结论
 
-Should the original scripts this chapter is pointing to disappear or the HF hub is down while you're reading this, here is [the local back up of all of them](./tiny-scripts/).
+虽然在机器学习领域，我们有数据集、模型和分词器——每一个都可以做得很小，从而以低资源需求实现超高速开发，但如果您来自不同的行业，您可以将本章中讨论的思想应用到您特定领域的工件/有效载荷中。
 
-note-to-self: to make the latest backup of files linked to in this chapter run:
+
+## 本章中所有脚本的备份
+
+如果您在阅读本章时，本章所指向的原始脚本消失或 HF 中心宕机，这里是[它们所有脚本的本地备份](./tiny-scripts/)。
+
+自我提醒：要制作本章中链接到的文件的最新备份，请运行：
 ```
 perl -lne 'while (/(https.*?.py)\)/g) { $x=$1; $x=~s/blob/raw/; print qq[wget $x] }' make-tiny-models.md
 ```

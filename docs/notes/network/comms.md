@@ -1,199 +1,200 @@
 ---
-title: comms
+title: 通信
 createTime: 2025/07/03 00:05:24
+permalink: /notes/notes/pp5a3y4a/
 ---
-# Communication Patterns
+# 通信模式
 
-The intention of this chapter is not to show code examples and explain APIs for which there are many tutorials, but to have excellent visuals that explain how the various types of communication patterns work.
+本章的目的不是展示代码示例和解释 API（相关的教程已经很多），而是通过出色的可视化来解释各种通信模式的工作原理。
 
-## Point-to-point communications
+## 点对点通信
 
-Point-to-point communications are the simplest type of communication where there is always a single sender and a single receiver.
+点对点通信是最简单的通信类型，它总是只有一个发送方和一个接收方。
 
-For example, [Pipeline Parallelism](../training/model-parallelism#pipeline-parallelism) performs a point-to-point communication where the activations from the current vertical stage is sent to the next stage. So the current gpu performs `send` and the gpu holding the next stage performs `recv`.
+例如，[流水线并行](../training/model-parallelism#pipeline-parallelism) 执行的就是点对点通信，其中当前垂直阶段的激活值被发送到下一个阶段。因此，当前 GPU 执行 `send`，而持有下一个阶段的 GPU 执行 `recv`。
 
-PyTorch has `send` and `recv` for blocking, `isend` and `irecv` for non-blocking p2p comms. [more](https://pytorch.org/tutorials/intermediate/dist_tuto.html#id1).
+PyTorch 提供了用于阻塞式点对点通信的 `send` 和 `recv`，以及用于非阻塞式点对点通信的 `isend` 和 `irecv`。[更多信息](https://pytorch.org/tutorials/intermediate/dist_tuto.html#id1)。
 
 
-## Collective communications
+## 集体通信
 
-Collective communications include either multiple senders and a single receiver, a single sender and multiple receivers or multiple senders and multiple receivers.
+集体通信包括多个发送方和一个接收方、一个发送方和多个接收方，或多个发送方和多个接收方。
 
-In the world of PyTorch typically each process is tied to a single accelerator, and thus accelerators perform collective communications via process groups. The same process may belong to multiple process groups.
+在 PyTorch 的世界里，通常每个进程都与一个加速器绑定，因此加速器通过进程组执行集体通信。同一个进程可以属于多个进程组。
 
-### Broadcast
+### 广播 (Broadcast)
 
 ![broadcast](images/collective-broadcast-1.png)
-[source](https://images.nvidia.com/events/sc15/pdfs/NCCL-Woolley.pdf)
+[来源](https://images.nvidia.com/events/sc15/pdfs/NCCL-Woolley.pdf)
 
 ![broadcast](images/collective-broadcast-2.png)
-[source](https://images.nvidia.com/events/sc15/pdfs/NCCL-Woolley.pdf)
+[来源](https://images.nvidia.com/events/sc15/pdfs/NCCL-Woolley.pdf)
 
-PyTorch API example:
+PyTorch API 示例：
 
-`dist.broadcast(tensor, src, group)`: Copies `tensor` from `src` to all other processes. [doc](https://pytorch.org/docs/stable/distributed.html#torch.distributed.broadcast).
+`dist.broadcast(tensor, src, group)`: 将 `tensor` 从 `src` 复制到所有其他进程。[文档](https://pytorch.org/docs/stable/distributed.html#torch.distributed.broadcast)。
 
 
 
-### Gather
+### 收集 (Gather)
 
 ![gather](images/collective-gather-1.png)
-[source](https://images.nvidia.com/events/sc15/pdfs/NCCL-Woolley.pdf)
+[来源](https://images.nvidia.com/events/sc15/pdfs/NCCL-Woolley.pdf)
 
 ![gather](images/collective-gather-2.png)
-[source](https://images.nvidia.com/events/sc15/pdfs/NCCL-Woolley.pdf)
+[来源](https://images.nvidia.com/events/sc15/pdfs/NCCL-Woolley.pdf)
 
-PyTorch API example:
+PyTorch API 示例：
 
-`dist.gather(tensor, gather_list, dst, group)`: Copies `tensor` from all processes in `dst`. [doc](https://pytorch.org/docs/stable/distributed.html#torch.distributed.gather)
+`dist.gather(tensor, gather_list, dst, group)`: 将 `tensor` 从所有进程复制到 `dst` 中。[文档](https://pytorch.org/docs/stable/distributed.html#torch.distributed.gather)
 
 
 
-### All-gather
+### 全局收集 (All-gather)
 
 ![all-gather](images/collective-all-gather-1.png)
-[source](https://images.nvidia.com/events/sc15/pdfs/NCCL-Woolley.pdf)
+[来源](https://images.nvidia.com/events/sc15/pdfs/NCCL-Woolley.pdf)
 
 ![all-gather](images/collective-all-gather-2.png)
-[source](https://images.nvidia.com/events/sc15/pdfs/NCCL-Woolley.pdf)
+[来源](https://images.nvidia.com/events/sc15/pdfs/NCCL-Woolley.pdf)
 
-For example, this collective is used in [ZeRO](../training/model-parallelism#zero-data-parallelism) (Deepspeed and FSDP) to gather the sharded model weights before `forward` and `backward` calls.
+例如，这个集体操作在 [ZeRO](../training/model-parallelism#zero-data-parallelism) (Deepspeed 和 FSDP) 中用于在 `forward` 和 `backward` 调用之前收集分片的模型权重。
 
-PyTorch API example:
+PyTorch API 示例：
 
-`dist.all_gather(tensor_list, tensor, group)`: Copies `tensor` from all processes to `tensor_list`, on all processes. [doc](https://pytorch.org/docs/stable/distributed.html#torch.distributed.all_gather)
+`dist.all_gather(tensor_list, tensor, group)`: 将 `tensor` 从所有进程复制到所有进程的 `tensor_list` 中。[文档](https://pytorch.org/docs/stable/distributed.html#torch.distributed.all_gather)
 
 
 
-### Reduce
+### 规约 (Reduce)
 
 ![reduce](images/collective-reduce-1.png)
-[source](https://images.nvidia.com/events/sc15/pdfs/NCCL-Woolley.pdf)
+[来源](https://images.nvidia.com/events/sc15/pdfs/NCCL-Woolley.pdf)
 
 ![reduce](images/collective-reduce-2.png)
-[source](https://images.nvidia.com/events/sc15/pdfs/NCCL-Woolley.pdf)
+[来源](https://images.nvidia.com/events/sc15/pdfs/NCCL-Woolley.pdf)
 
-PyTorch API example:
+PyTorch API 示例：
 
-`dist.reduce(tensor, dst, op, group)`: Applies `op` to every `tensor` and stores the result in `dst`. [doc](https://pytorch.org/docs/stable/distributed.html#torch.distributed.reduce)
+`dist.reduce(tensor, dst, op, group)`: 对每个 `tensor` 应用 `op` 操作，并将结果存储在 `dst` 中。[文档](https://pytorch.org/docs/stable/distributed.html#torch.distributed.reduce)
 
-PyTorch supports multiple reduction operations like: `avg`, `sum`, `product`, `min`, `max`, `band`, `bor`, `bxor`, and others - [full list](https://pytorch.org/docs/stable/distributed.html#torch.distributed.ReduceOp).
+PyTorch 支持多种规约操作，如：`avg`, `sum`, `product`, `min`, `max`, `band`, `bor`, `bxor` 等 - [完整列表](https://pytorch.org/docs/stable/distributed.html#torch.distributed.ReduceOp)。
 
 
 
-### All-reduce
+### 全局规约 (All-reduce)
 
 ![all-reduce](images/collective-all-reduce-1.png)
 
-[source](https://images.nvidia.com/events/sc15/pdfs/NCCL-Woolley.pdf)
+[来源](https://images.nvidia.com/events/sc15/pdfs/NCCL-Woolley.pdf)
 ![all-reduce](images/collective-all-reduce-2.png)
-[source](https://images.nvidia.com/events/sc15/pdfs/NCCL-Woolley.pdf)
+[来源](https://images.nvidia.com/events/sc15/pdfs/NCCL-Woolley.pdf)
 
-For example, this collective is used in [DDP](https://pytorch.org/docs/stable/generated/torch.nn.parallel.DistributedDataParallel.html) to reduce gradients between all participating ranks.
+例如，这个集体操作在 [DDP](https://pytorch.org/docs/stable/generated/torch.nn.parallel.DistributedDataParallel.html) 中用于在所有参与的 rank 之间规约梯度。
 
-PyTorch API example:
+PyTorch API 示例：
 
-`dist.all_reduce(tensor, op, group)`: Same as reduce, but the result is stored in all processes. [doc](https://pytorch.org/docs/stable/distributed.html#torch.distributed.all_reduce)
+`dist.all_reduce(tensor, op, group)`: 与 reduce 相同，但结果存储在所有进程中。[文档](https://pytorch.org/docs/stable/distributed.html#torch.distributed.all_reduce)
 
 
 
-### Scatter
+### 分散 (Scatter)
 
 ![scatter](images/collective-scatter-1.png)
-[source](https://images.nvidia.com/events/sc15/pdfs/NCCL-Woolley.pdf)
+[来源](https://images.nvidia.com/events/sc15/pdfs/NCCL-Woolley.pdf)
 
 ![scatter](images/collective-scatter-2.png)
-[source](https://images.nvidia.com/events/sc15/pdfs/NCCL-Woolley.pdf)
+[来源](https://images.nvidia.com/events/sc15/pdfs/NCCL-Woolley.pdf)
 
-PyTorch API example:
+PyTorch API 示例：
 
-`dist.scatter(tensor, scatter_list, src, group)`: Copies the `i`-th tensor `scatter_list[i]` to the `i`-th process. [doc](https://pytorch.org/docs/stable/distributed.html#torch.distributed.scatter)
-
-
+`dist.scatter(tensor, scatter_list, src, group)`: 将第 `i`-个张量 `scatter_list[i]` 复制到第 `i`-个进程。[文档](https://pytorch.org/docs/stable/distributed.html#torch.distributed.scatter)
 
 
-### Reduce-Scatter
+
+
+### 规约-分散 (Reduce-Scatter)
 
 ![reduce-scatter](images/collective-reduce-scatter.png)
-[source](https://images.nvidia.com/events/sc15/pdfs/NCCL-Woolley.pdf)
+[来源](https://images.nvidia.com/events/sc15/pdfs/NCCL-Woolley.pdf)
 
-For example, this collective is used in [ZeRO](../training/model-parallelism#zero-data-parallelism) (Deepspeed and FSDP) to efficiently reduce gradients across all participating ranks. This is 2x more efficient than [all-reduce](#all-reduce).
+例如，这个集体操作在 [ZeRO](../training/model-parallelism#zero-data-parallelism) (Deepspeed 和 FSDP) 中用于高效地在所有参与的 rank 之间规约梯度。这比 [all-reduce](#all-reduce) 效率高 2 倍。
 
-PyTorch API example:
+PyTorch API 示例：
 
-`reduce_scatter(output, input_list, op, group, async_op)`: Reduces, then scatters a list of tensors to all processes in a group. [doc](https://pytorch.org/docs/stable/distributed.html#torch.distributed.reduce_scatter)
-
-
+`reduce_scatter(output, input_list, op, group, async_op)`: 归约，然后将张量列表分散到组中的所有进程。[文档](https://pytorch.org/docs/stable/distributed.html#torch.distributed.reduce_scatter)
 
 
-### All-to-all
+
+
+### 全局到全局 (All-to-all)
 
 ![all-to-all](images/collective-all-to-all-1.png)
-[source](https://images.nvidia.com/events/sc15/pdfs/NCCL-Woolley.pdf)
+[来源](https://images.nvidia.com/events/sc15/pdfs/NCCL-Woolley.pdf)
 
 ![all-to-all](images/collective-all-to-all.png)
-[source](https://images.nvidia.com/events/sc15/pdfs/NCCL-Woolley.pdf)
+[来源](https://images.nvidia.com/events/sc15/pdfs/NCCL-Woolley.pdf)
 
-For example, this collective is used in [Deepspeed Sequence Parallelism](../training/model-parallelism#deepspeed-ulysses-sp) for attention computation, and in MoE [Expert Parallelism](../training/model-parallelism#expert-parallelism).
-
-
-PyTorch API example:
-
-`dist.all_to_all(output_tensor_list, input_tensor_list, group)`: Scatters list of input tensors to all processes in a group and return gathered list of tensors in output list. [doc](https://pytorch.org/docs/stable/distributed.html#torch.distributed.all_to_all)
+例如，这个集体操作在 [Deepspeed 序列并行](../training/model-parallelism#deepspeed-ulysses-sp) 中用于注意力计算，以及在 MoE [专家并行](../training/model-parallelism#expert-parallelism) 中使用。
 
 
+PyTorch API 示例：
 
-## Algorithms
-
-The collective communications may have a variety of different implementations, and comm libraries like `nccl` may switch between different algorithms depending on internal heuristics, unless overridden by users.
-
-### Ring
+`dist.all_to_all(output_tensor_list, input_tensor_list, group)`：将输入张量列表分散到组中的所有进程，并在输出列表中返回收集的张量列表。[文档](https://pytorch.org/docs/stable/distributed.html#torch.distributed.all_to_all)
 
 
-#### Broadcast with unidirectional ring
 
-Given:
+## 算法
 
-- N: bytes to broadcast
-- B: bandwidth of each link
-- k: number of GPUs
+集体通信可以有多种不同的实现方式，像 `nccl` 这样的通信库可能会根据内部启发式方法在不同算法之间切换，除非用户覆盖了这些设置。
 
-A naive broadcast will send `N/B` at each step. The total time to broadcast to `k` GPUs will take: `(k-1)*N/B`
+### 环形 (Ring)
 
-Here is an example of how a ring-based broadcast is performed:
+
+#### 使用单向环的广播
+
+给定：
+
+- N: 要广播的字节数
+- B: 每个链接的带宽
+- k: GPU 的数量
+
+一个朴素的广播在每一步会发送 `N/B`。广播到 `k` 个 GPU 的总时间将是：`(k-1)*N/B`
+
+这是一个基于环的广播如何执行的示例：
 
 ![ring-based broadcast](images/broadcast-ring.png)
-[source](https://images.nvidia.com/events/sc15/pdfs/NCCL-Woolley.pdf)
+[来源](https://images.nvidia.com/events/sc15/pdfs/NCCL-Woolley.pdf)
 
-This algorithm splits `N` into `S` messages
+该算法将 `N` 分成 `S` 条消息。
 
-At each step `N/(S*B)` is sent, which is `S` times less than the naive algorithm sends per step.
+在每一步，发送 `N/(S*B)`，这比朴素算法每步发送的数据量少 `S` 倍。
 
-The total time to broadcast `N` bytes to `k` GPUs will take:
+广播 `N` 字节到 `k` 个 GPU 的总时间将是：
 
 `S*N/(S*B) + (k − 2)*N*/(S*B) = N*(S + k − 2)/(S*B)`
 
-and if split messages are very small so that`S>>k`: `S + k − 2` is `~S` and then the total time is about `N/B`.
+如果分割的消息非常小，以至于 `S>>k`，那么 `S + k - 2` 约等于 `S`，总时间就大约是 `N/B`。
 
 
 
-#### All-reduce with unidirectional ring
+#### 使用单向环的全局规约
 
-Ring-based `all-reduce` is done similarly to [broadcast](#broadcast-with-unidirectional-ring). The message is split into many small messages and each GPU sends a small message to the next GPU in parallel with other GPUs. `all-reduce` has to perform 2x steps than `broadcast`, because it performs a reduction - so the size of the message needs to be sent twice over the wire.
+基于环的 `all-reduce` 与[广播](#broadcast-with-unidirectional-ring)类似。消息被分割成许多小消息，每个 GPU 与其他 GPU 并行地将一个小消息发送到下一个 GPU。`all-reduce` 需要执行比 `broadcast` 多一倍的步骤，因为它执行规约操作——因此消息的大小需要在网络上传输两次。
 
-Moreover, the whole message can be first split into chunks, to make the process even more efficient. Here is the reduction of the first chunk:
+此外，整个消息可以首先被分割成块，以使过程更加高效。这是第一个块的规约过程：
 
 ![ring-based all-reduce chunk 1](images/all-reduce-ring-chunk1.png)
-[source](https://images.nvidia.com/events/sc15/pdfs/NCCL-Woolley.pdf)
+[来源](https://images.nvidia.com/events/sc15/pdfs/NCCL-Woolley.pdf)
 
-Then the next chunk is done, until all smaller messages are reduced:
+然后处理下一个块，直到所有较小的消息都被规约：
 
 ![ring-based all-reduce chunk 2](images/all-reduce-ring-chunk2.png)
-[source](https://images.nvidia.com/events/sc15/pdfs/NCCL-Woolley.pdf)
+[来源](https://images.nvidia.com/events/sc15/pdfs/NCCL-Woolley.pdf)
 
 
-## More guides
+## 更多指南
 
-Here are some additional guides with good visuals:
+以下是一些带有良好可视化的额外指南：
 
-- [UvA Deep Learning Tutorials](https://uvadlc-notebooks.readthedocs.io/en/latest/tutorial_notebooks/DL2/High-performant_DL/Multi_GPU/hpdlmultigpu.html#Communication-Primitives)
+- [UvA 深度学习教程](https://uvadlc-notebooks.readthedocs.io/en/latest/tutorial_notebooks/DL2/High-performant_DL/Multi_GPU/hpdlmultigpu.html#Communication-Primitives)

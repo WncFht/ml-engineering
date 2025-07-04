@@ -1,10 +1,11 @@
 ---
-title: README
+title: 自述文件
 createTime: 2025/07/03 00:05:24
+permalink: /notes/notes/8o2ie6xn/
 ---
-# A Back up of scripts
+# 脚本备份
 
-This is a backup of scripts discussed in [Faster debug and development with tiny models, tokenizers and datasets](../make-tiny-models-tokenizers-datasets.md).
+这是在[使用微型模型、分词器和数据集加快调试和开发速度](../make-tiny-models-tokenizers-datasets.md)中讨论的脚本的备份。
 
 * [c4-en-10k.py](./c4-en-10k.py)
 * [cm4-synthetic-testing.py](./cm4-synthetic-testing.py)

@@ -1,23 +1,24 @@
 ---
 title: disable-nvlink
 createTime: 2025/07/03 00:05:24
+permalink: /notes/notes/qaiwjh4o/
 ---
-# Disabling NVLink Benchmark
+# 禁用 NVLink 基准测试
 
-Let's compare the training of a gpt2 language model training over a small sample of wikitext.
+让我们比较一个 gpt2 语言模型在一个小的 wikitext 样本上的训练。
 
-The results are:
+结果如下：
 
-| NVlink | Time |
+| NVlink | 时间 |
 | -----  | ---: |
 | Y      | 101s |
 | N      | 131s |
 
-You can see that NVLink completes the training ~23% faster. In the second benchmark we use `NCCL_P2P_DISABLE=1` to tell the GPUs not to use NVLink, which will use PCIe instead.
+您可以看到，NVLink 完成训练的速度快了约 23%。在第二个基准测试中，我们使用 `NCCL_P2P_DISABLE=1` 来告诉 GPU 不要使用 NVLink，这将改用 PCIe。
 
-We will use [HF Transformers examples](https://github.com/huggingface/transformers/blob/58e3d23e97078f361a533b9ec4a6a2de674ea52a/examples/pytorch/language-modeling/run_clm.py).
+我们将使用 [HF Transformers 示例](https://github.com/huggingface/transformers/blob/58e3d23e97078f361a533b9ec4a6a2de674ea52a/examples/pytorch/language-modeling/run_clm.py)。
 
-Here is the full benchmark code and outputs:
+以下是完整的基准测试代码和输出：
 
 ```bash
 # DDP w/ NVLink
@@ -39,5 +40,5 @@ rm -r /tmp/test-clm; CUDA_VISIBLE_DEVICES=0,1 NCCL_P2P_DISABLE=1 python -m torch
 {'train_runtime': 131.4367, 'train_samples_per_second': 1.522, 'epoch': 0.69}
 ```
 
-Hardware: 2x TITAN RTX 24GB each + NVlink with 2 NVLinks (`NV2` in `nvidia-smi topo -m`)
-Software: `pytorch-1.8-to-be` + `cuda-11.0` / `transformers==4.3.0.dev0`
+硬件：2x TITAN RTX 24GB each + NVlink with 2 NVLinks (`NV2` in `nvidia-smi topo -m`)
+软件：`pytorch-1.8-to-be` + `cuda-11.0` / `transformers==4.3.0.dev0`

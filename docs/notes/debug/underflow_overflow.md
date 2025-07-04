@@ -1,16 +1,15 @@
 ---
-title: underflow_overflow
+title: 下溢和上溢
 createTime: 2025/07/03 00:05:24
+permalink: /notes/notes/n6vox1p4/
 ---
-# Underflow and Overflow Detection
+# 下溢和上溢检测
 
-For this section we are going to use the [underflow_overflow](./underflow_overflow.py) library.
+对于本节，我们将使用 [underflow_overflow](./underflow_overflow.py) 库。
 
-If you start getting `loss=NaN` or the model inhibits some other abnormal behavior due to `inf` or `nan` in
-activations or weights one needs to discover where the first underflow or overflow happens and what led to it. Luckily
-you can accomplish that easily by activating a special module that will do the detection automatically.
+如果您开始得到 `loss=NaN` 或者模型由于激活或权重中出现 `inf` 或 `nan` 而表现出其他异常行为，则需要发现第一次下溢或上溢发生在哪里以及导致它的原因。幸运的是，您可以通过激活一个特殊的模块来轻松完成此操作，该模块将自动进行检测。
 
-Let's use a `t5-large` model for this demonstration.
+让我们使用 `t5-large` 模型进行此演示。
 
 ```python
 from .underflow_overflow import DebugUnderflowOverflow
@@ -20,15 +19,14 @@ model = AutoModel.from_pretrained("t5-large")
 debug_overflow = DebugUnderflowOverflow(model)
 ```
 
-[`underflow_overflow.DebugUnderflowOverflow`] inserts hooks into the model that immediately after each
-forward call will test input and output variables and also the corresponding module's weights. As soon as `inf` or
-`nan` is detected in at least one element of the activations or weights, the program will assert and print a report
-like this (this was caught with `google/mt5-small` under fp16 mixed precision):
+[`underflow_overflow.DebugUnderflowOverflow`] 将钩子插入到模型中，在每次
+前向调用后立即测试输入和输出变量以及相应模块的权重。一旦在激活或权重的至少一个元素中检测到 `inf` 或
+`nan`，程序将断言并打印如下报告（这是在 fp16 混合精度下用 `google/mt5-small` 捕获的）：
 
 ```
-Detected inf/nan during batch_number=0
-Last 21 forward frames:
-abs min  abs max  metadata
+在 batch_number=0 期间检测到 inf/nan
+最近 21 个前向帧：
+abs min  abs max  元数据
                   encoder.block.1.layer.1.DenseReluDense.dropout Dropout
 0.00e+00 2.57e+02 input[0]
 0.00e+00 2.85e+02 output
@@ -65,18 +63,18 @@ abs min  abs max  metadata
 0.00e+00      inf output
 ```
 
-The example output has been trimmed in the middle for brevity.
+为了简洁起见，示例输出在中间被修剪了。
 
-The second column shows the value of the absolute largest element, so if you have a closer look at the last few frames,
-the inputs and outputs were in the range of `1e4`. So when this training was done under fp16 mixed precision the very
-last step overflowed (since under `fp16` the largest number before `inf` is `64e3`). To avoid overflows under
-`fp16` the activations must remain way below `1e4`, because `1e4 * 1e4 = 1e8` so any matrix multiplication with
-large activations is going to lead to a numerical overflow condition.
+第二列显示了绝对最大元素的值，所以如果您仔细查看最后几个帧，
+输入和输出都在 `1e4` 的范围内。所以当这个训练在 fp16 混合精度下进行时，最后
+一步溢出了（因为在 `fp16` 下，`inf` 前的最大数字是 `64e3`）。为了避免在
+`fp16` 下溢出，激活值必须保持远低于 `1e4`，因为 `1e4 * 1e4 = 1e8`，所以任何与
+大激活值的矩阵乘法都会导致数值溢出。
 
-At the very start of the trace you can discover at which batch number the problem occurred (here `Detected inf/nan during batch_number=0` means the problem occurred on the first batch).
+在跟踪的最初，您可以发现问题发生在哪个批次号（这里 `Detected inf/nan during batch_number=0` 意味着问题发生在第一个批次）。
 
-Each reported frame starts by declaring the fully qualified entry for the corresponding module this frame is reporting
-for. If we look just at this frame:
+每个报告的帧都以声明该帧报告的相应模块的完全限定条目开始
+。如果我们只看这个帧：
 
 ```
                   encoder.block.2.layer.1.layer_norm T5LayerNorm
@@ -85,15 +83,15 @@ for. If we look just at this frame:
 1.79e-06 4.65e+00 output
 ```
 
-Here, `encoder.block.2.layer.1.layer_norm` indicates that it was a layer norm for the first layer, of the second
-block of the encoder. And the specific calls of the `forward` is `T5LayerNorm`.
+在这里，`encoder.block.2.layer.1.layer_norm` 表示它是编码器第二个
+块的第一层的层归一化。而 `forward` 的特定调用是 `T5LayerNorm`。
 
-Let's look at the last few frames of that report:
+让我们看一下该报告的最后几帧：
 
 ```
-Detected inf/nan during batch_number=0
-Last 21 forward frames:
-abs min  abs max  metadata
+在 batch_number=0 期间检测到 inf/nan
+最近 21 个前向帧：
+abs min  abs max  元数据
 [...]
                   encoder.block.2.layer.1.DenseReluDense.wi_0 Linear
 2.17e-07 4.50e+00 weight
@@ -115,20 +113,20 @@ abs min  abs max  metadata
 0.00e+00      inf output
 ```
 
-The last frame reports for `Dropout.forward` function with the first entry for the only input and the second for the
-only output. You can see that it was called from an attribute `dropout` inside `DenseReluDense` class. We can see
-that it happened during the first layer, of the 2nd block, during the very first batch. Finally, the absolute largest
-input elements was `6.27e+04` and same for the output was `inf`.
+最后一帧报告了 `Dropout.forward` 函数，第一个条目是唯一的输入，第二个条目是
+唯一的输出。您可以看到它是从 `DenseReluDense` 类中的 `dropout` 属性调用的。我们可以看到
+它发生在第一个批次的第二个块的第一层。最后，绝对最大的
+输入元素是 `6.27e+04`，而输出是 `inf`。
 
-You can see here, that `T5DenseGatedGeluDense.forward` resulted in output activations, whose absolute max value was
-around 62.7K, which is very close to fp16's top limit of 64K. In the next frame we have `Dropout` which renormalizes
-the weights, after it zeroed some of the elements, which pushes the absolute max value to more than 64K, and we get an
-overflow (`inf`).
+您可以在这里看到，`T5DenseGatedGeluDense.forward` 产生的输出激活，其绝对最大值
+约为 62.7K，非常接近 fp16 的上限 64K。在下一帧中，我们有 `Dropout`，它在将某些元素归零后重新归一化
+权重，这将绝对最大值推高到超过 64K，我们得到了一个
+上溢 (`inf`)。
 
-As you can see it's the previous frames that we need to look into when the numbers start going into very large for fp16
-numbers.
+如您所见，当数字开始变得对于 fp16
+数字来说非常大时，我们需要查看的是前面的帧。
 
-Let's match the report to the code from [`models/t5/modeling_t5.py`](https://github.com/huggingface/transformers/blob/main/src/transformers/models/t5/modeling_t5.py):
+让我们将报告与 [`models/t5/modeling_t5.py`](https://github.com/huggingface/transformers/blob/main/src/transformers/models/t5/modeling_t5.py) 中的代码进行匹配：
 
 
 ```python
@@ -150,15 +148,15 @@ class T5DenseGatedGeluDense(nn.Module):
         return hidden_states
 ```
 
-Now it's easy to see the `dropout` call, and all the previous calls as well.
+现在很容易看到 `dropout` 调用，以及之前的所有调用。
 
-Since the detection is happening in a forward hook, these reports are printed immediately after each `forward`
-returns.
+由于检测是在前向钩子中进行的，因此这些报告会在每次 `forward`
+返回后立即打印。
 
-Going back to the full report, to act on it and to fix the problem, we need to go a few frames up where the numbers
-started to go up and most likely switch to the `fp32` mode here, so that the numbers don't overflow when multiplied
-or summed up. Of course, there might be other solutions. For example, we could turn off `amp` temporarily if it's
-enabled, after moving the original `forward` into a helper wrapper, like so:
+回到完整的报告，为了处理它并解决问题，我们需要向上移动几帧，到数字
+开始变大的地方，并且很可能在这里切换到 `fp32` 模式，这样数字在相乘
+或相加时就不会溢出。当然，可能还有其他解决方案。例如，如果 `amp`
+已启用，我们可以暂时关闭它，在将原始的 `forward` 移动到一个辅助包装器后，像这样：
 
 ```python
 import torch
@@ -179,9 +177,9 @@ def forward(self, hidden_states):
         return self._forward(hidden_states)
 ```
 
-Since the automatic detector only reports on inputs and outputs of full frames, once you know where to look, you may
-want to analyse the intermediary stages of any specific `forward` function as well. In such a case you can use the
-`detect_overflow` helper function to inject the detector where you want it, for example:
+由于自动检测器只报告完整帧的输入和输出，一旦你知道了要看哪里，你可能
+也想分析任何特定 `forward` 函数的中间阶段。在这种情况下，你可以使用
+`detect_overflow` 辅助函数在你想要的地方注入检测器，例如：
 
 ```python
 from underflow_overflow import detect_overflow
@@ -198,14 +196,14 @@ class T5LayerFF(nn.Module):
         return hidden_states + self.dropout(forwarded_states)
 ```
 
-You can see that we added 2 of these and now we track if `inf` or `nan` for `forwarded_states` was detected
-somewhere in between.
+您可以看到我们添加了其中的 2 个，现在我们跟踪是否在中间的某个地方检测到 `forwarded_states` 的 `inf` 或 `nan`
+。
 
-Actually, the detector already reports these because each of the calls in the example above is a `nn.Module`, but
-let's say if you had some local direct calculations this is how you'd do that.
+实际上，检测器已经报告了这些，因为上面示例中的每个调用都是一个 `nn.Module`，但是
+比方说，如果您有一些本地的直接计算，这就是您要做的。
 
-Additionally, if you're instantiating the debugger in your own code, you can adjust the number of frames printed from
-its default, e.g.:
+此外，如果您在自己的代码中实例化调试器，您可以从
+其默认值调整打印的帧数，例如：
 
 ```python
 from .underflow_overflow import DebugUnderflowOverflow
@@ -213,27 +211,25 @@ from .underflow_overflow import DebugUnderflowOverflow
 debug_overflow = DebugUnderflowOverflow(model, max_frames_to_save=100)
 ```
 
-## Specific batch absolute mix and max value tracing
+## 特定批次的绝对最小和最大值追踪
 
-The same debugging class can be used for per-batch tracing with the underflow/overflow detection feature turned off.
+同样的调试类可以用于逐批次跟踪，同时关闭下溢/上溢检测功能。
 
-Let's say you want to watch the absolute min and max values for all the ingredients of each `forward` call of a given
-batch, and only do that for batches 1 and 3. Then you instantiate this class as:
+假设您想观察给定批次的每个 `forward` 调用的所有成分的绝对最小值和最大值，并且只对批次 1 和 3 进行此操作。然后您可以这样实例化此类：
 
 ```python
 debug_overflow = DebugUnderflowOverflow(model, trace_batch_nums=[1, 3])
 ```
 
-And now full batches 1 and 3 will be traced using the same format as the underflow/overflow detector does.
+现在，将使用与下溢/上溢检测器相同的格式来跟踪完整的批次 1 和 3。
 
-Batches are 0-indexed.
+批次是从 0 开始索引的。
 
-This is helpful if you know that the program starts misbehaving after a certain batch number, so you can fast-forward
-right to that area. Here is a sample truncated output for such configuration:
+如果您知道程序在某个批次号之后开始出现异常行为，这会很有帮助，因此您可以快速跳转到该区域。以下是此类配置的示例截断输出：
 
 ```
-                  *** Starting batch number=1 ***
-abs min  abs max  metadata
+                  *** 开始批次号=1 ***
+abs min  abs max  元数据
                   shared Embedding
 1.01e-06 7.92e+02 weight
 0.00e+00 2.47e+04 input[0]
@@ -243,16 +239,16 @@ abs min  abs max  metadata
 1.60e-07 2.27e+01 input[0]
 0.00e+00 2.52e+01 output
                   decoder T5Stack
-     not a tensor output
+     不是一个张量 output
                   lm_head Linear
 1.01e-06 7.92e+02 weight
 0.00e+00 1.11e+00 input[0]
 6.06e-02 8.39e+01 output
                    T5ForConditionalGeneration
-     not a tensor output
+     不是一个张量 output
 
-                  *** Starting batch number=3 ***
-abs min  abs max  metadata
+                  *** 开始批次号=3 ***
+abs min  abs max  元数据
                   shared Embedding
 1.01e-06 7.92e+02 weight
 0.00e+00 2.78e+04 input[0]
@@ -260,12 +256,12 @@ abs min  abs max  metadata
 [...]
 ```
 
-Here you will get a huge number of frames dumped - as many as there were forward calls in your model, so it may or may
-not what you want, but sometimes it can be easier to use for debugging purposes than a normal debugger. For example, if
-a problem starts happening at batch number 150. So you can dump traces for batches 149 and 150 and compare where
-numbers started to diverge.
+在这里，您将获得大量的帧转储 - 与模型中的前向调用一样多，因此它可能
+是您想要的，也可能不是，但有时它比普通的调试器更容易用于调试目的。例如，如果
+问题在批次号 150 开始出现。因此您可以转储批次 149 和 150 的跟踪，并比较
+数字开始发散的地方。
 
-You can also specify the batch number after which to stop the training, with:
+您还可以指定在哪个批次号之后停止训练，使用：
 
 ```python
 debug_overflow = DebugUnderflowOverflow(model, trace_batch_nums=[1, 3], abort_after_batch_num=3)

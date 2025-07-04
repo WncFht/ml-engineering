@@ -1,7 +1,8 @@
 ---
 title: nccl-performance-debug
 createTime: 2025/07/03 00:05:24
+permalink: /notes/notes/nhuv2lob/
 ---
-# NCCL: Debug and Performance
+# NCCL：调试和性能
 
-moved to [Network Debug](../network/debug).
+已移至[网络调试](../network/debug)。

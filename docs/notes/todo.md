@@ -1,10 +1,11 @@
 ---
-title: todo
+title: 待办事项
 createTime: 2025/07/03 00:05:24
+permalink: /notes/notes/cefn9l42/
 ---
-# TODO
+# 待办事项
 
-Also see [stabs](./stabs)
+另请参阅 [stabs](./stabs)
 
-- re-run all-reduce bench and update plot+table as the bench switched to KiB/MiB/etc.
+- 重新运行 all-reduce 基准测试并更新图表+表格，因为基准测试已切换到 KiB/MiB/等。
 https://github.com/stas00/ml-engineering/tree/master/network/benchmarks#all_reduce-benchmark

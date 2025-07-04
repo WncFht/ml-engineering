@@ -1,6 +1,7 @@
 ---
 title: Orchestration
 createTime: 2025/07/03 00:05:24
+permalink: /notes/notes/uzb76yod/
 ---
 # Orchestration
 

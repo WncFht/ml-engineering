@@ -1,6 +1,7 @@
 ---
 title: README
 createTime: 2025/07/03 00:05:24
+permalink: /notes/notes/xg0lran6/
 ---
 # Model Parallelism
 
