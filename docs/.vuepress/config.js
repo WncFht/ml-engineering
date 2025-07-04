@@ -14,7 +14,7 @@ export default defineUserConfig({
     ]
   ],
   locales: {
-    '/': { lang: 'zh-CN', title: 'Machine Learning Engineering' }
+    '/': { lang: 'zh-CN', title: '机器学习工程' }
   },
   theme: plumeTheme(themeConfig),
   bundler: viteBundler(),

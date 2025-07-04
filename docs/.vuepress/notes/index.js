@@ -74,7 +74,7 @@ export default definePlumeNotesConfig({
   link: '/notes/',
   notes: [
     {
-      text: 'Machine Learning Engineering',
+      text: '机器学习工程',
       dir: '',
       link: '/notes/',
       // This sidebar will be used for ALL pages under /notes/

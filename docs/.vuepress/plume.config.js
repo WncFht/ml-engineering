@@ -11,12 +11,12 @@ export default defineThemeConfig({
     { icon: 'github', link: 'https://github.com/stas00/ml-engineering' },
   ],
   navbar: [
-    { text: 'Home', link: '/' },
+    { text: '首页', link: '/' },
   ],
   notes,
   // Add a global sidebar that applies to all pages
   sidebar: globalSidebar,
-  footer: { message: "Machine Learning Engineering", copyright: "CC-BY-4.0" },
+  footer: { message: "机器学习工程", copyright: "CC-BY-4.0" },
   plugins: {
     iconify: {
       collections: ['mdi'],
