@@ -3,28 +3,28 @@ title: pytorch
 createTime: 2025/07/03 00:05:24
 permalink: /notes/notes/joyolwoj/
 ---
-# Debugging PyTorch programs
+# 调试 PyTorch 程序
 
 
-## Getting nodes to talk to each other
+## 让节点互相通信
 
-Once you need to use more than one node to scale your training, e.g., if you want to use DDP to train faster, you have to get the nodes to talk to each other, so that communication collectives could send data to each other. This is typically done via a comms library like [NCCL](https://github.com/nVIDIA/nccl). And in our DDP example, at the end of training step all GPUs have to perform an `all_reduce` call to synchronize the gradients across all ranks.
+一旦您需要使用多个节点来扩展您的训练，例如，如果您想使用 DDP 来加快训练速度，您就必须让节点相互通信，以便通信集合可以将数据相互发送。这通常通过像 [NCCL](https://github.com/nVIDIA/nccl) 这样的通信库来完成。在我们的 DDP 示例中，在训练步骤结束时，所有 GPU 都必须执行一个 `all_reduce` 调用来同步所有等级的梯度。
 
-In this section we will discuss a very simple case of just 2 nodes (with 8 GPUs each) talking to each other and which can then be easily extended to as many nodes as needed. Let's say that these nodes have the IP addresses 10.0.0.1 and 10.0.0.2.
+在本节中，我们将讨论一个非常简单的案例，即只有 2 个节点（每个节点有 8 个 GPU）相互通信，然后可以轻松地扩展到任意数量的节点。假设这些节点的 IP 地址为 10.0.0.1 和 10.0.0.2。
 
-Once we have the IP addresses we then need to choose a port for communications.
+一旦我们有了 IP 地址，我们就需要选择一个通信端口。
 
-In Unix there are 64k ports. The first 1k are reserved for common services so that any computer on the Internet could connect to any other computer knowing ahead of time which port to connect to. For example, port 22 is reserved for SSH. So that whenever you do `ssh example.com` in fact the program open a connection to `example.com:22`.
+在 Unix 中有 64k 个端口。前 1k 个端口是为常用服务保留的，这样互联网上的任何计算机都可以连接到任何其他计算机，并提前知道要连接到哪个端口。例如，端口 22 是为 SSH 保留的。因此，每当您执行 `ssh example.com` 时，实际上程序会打开一个到 `example.com:22` 的连接。
 
-As there are thousands of services out there, the reserved 1k ports is not enough, and so various services could use pretty much any port. But fear not, when you get your Linux box on the cloud or an HPC, you're unlikely to have many preinstalled services that could use a high number port, so most ports should be available.
+由于有成千上万的服务，保留的 1k 端口是不够的，因此各种服务可以使用几乎任何端口。但不要害怕，当您在云或 HPC 上获得您的 Linux 盒子时，您不太可能有许多预装的服务会使用高编号的端口，因此大多数端口应该是可用的。
 
-Therefore let's choose port 6000.
+因此，我们选择端口 6000。
 
-Now we have: `10.0.0.1:6000` and `10.0.0.2:6000` that we want to be able to communicate with each other.
+现在我们有 `10.0.0.1:6000` 和 `10.0.0.2:6000`，我们希望它们能够相互通信。
 
-The first thing to do is to open port `6000` for incoming and outgoing connections on both nodes. It might be open already or you might have to read up the instructions of your particular setup on how to open a given port.
+首先要做的是在两个节点上为传入和传出连接打开端口 `6000`。它可能已经打开，或者您可能需要阅读您特定设置的说明以了解如何打开给定端口。
 
-Here are multiple ways that you could use to test whether port 6000 is already open.
+以下是您可以用来测试端口 6000 是否已打开的多种方法。
 
 ```
 telnet localhost:6000
@@ -33,9 +33,9 @@ nc -zv localhost 6000
 curl -v telnet://localhost:6000
 ```
 
-Most of these should be available via `apt install` or whatever your package manager uses.
+这些大多数应该可以通过 `apt install` 或您的包管理器使用的任何方式获得。
 
-Let's use `nmap` in this example. If I run:
+让我们在这个例子中使用 `nmap`。如果我运行：
 
 ```
 $ nmap -p 22 localhost
@@ -43,9 +43,9 @@ $ nmap -p 22 localhost
 PORT   STATE SERVICE
 22/tcp open  ssh
 ```
-We can see the port is open and it tells us which protocol and service is allocated as a bonus.
+我们可以看到端口是打开的，并且它告诉我们哪个协议和服务被分配了，这是一个额外的好处。
 
-Now let's run:
+现在我们运行：
 ```
 $ nmap -p 6000 localhost
 [...]
@@ -53,36 +53,36 @@ $ nmap -p 6000 localhost
 PORT     STATE  SERVICE
 6000/tcp closed X11
 ```
-Here you can see port 6000 is closed.
+在这里您可以看到端口 6000 是关闭的。
 
-Now that you understand how to test, you can proceed to test the `10.0.0.1:6000` and `10.0.0.2:6000`.
+现在您了解了如何测试，您可以继续测试 `10.0.0.1:6000` 和 `10.0.0.2:6000`。
 
-First ssh to the first node in terminal A and test if port 6000 is opened on the second node:
+首先在终端 A 中 ssh 到第一个节点，并测试第二个节点上的端口 6000 是否已打开：
 
 ```
 ssh 10.0.0.1
 nmap -p 6000 10.0.0.2
 ```
-if all is good, then in terminal B ssh to the second node and do the same check in reverse:
+如果一切正常，那么在终端 B 中 ssh 到第二个节点，并反向执行相同的检查：
 
 ```
 ssh 10.0.0.2
 nmap -p 6000 10.0.0.1
 ```
 
-If both ports are open you can now use this port. If either or both are closed you have to open these ports. Since most clouds use a proprietary solution, simply search the Internet for "open port" and the name of your cloud provider.
+如果两个端口都打开，您现在可以使用此端口。如果一个或两个都关闭，您必须打开这些端口。由于大多数云都使用专有解决方案，因此只需在互联网上搜索“打开端口”和您的云提供商的名称即可。
 
-The next important thing to understand is that compute nodes will typically have multiple network interface cards (NICs). You discover those interfaces by running:
+接下来要理解的重要事情是，计算节点通常会有多个网络接口卡 (NIC)。您可以通过运行以下命令来发现这些接口：
 
 ```
 $ sudo ifconfig
 ```
 
-One interface is typically used by users to connecting to nodes via ssh or for various other non-compute related services - e.g., sending an email or download some data. Often this interface is called `eth0`, with `eth` standing for Ethernet, but it can be called by other names.
+一个接口通常用于用户通过 ssh 连接到节点或用于各种其他与计算无关的服务 - 例如，发送电子邮件或下载一些数据。通常这个接口被称为 `eth0`，其中 `eth` 代表以太网，但它也可以有其他名称。
 
-Then there is the inter-node interface which can be Infiniband, EFA, OPA, HPE Slingshot, etc. ([more information](../network#inter-node-networking)). There could be one or dozens of those interfaces.
+然后是节点间接口，可以是 Infiniband、EFA、OPA、HPE Slingshot 等。（[更多信息](../network#inter-node-networking)）。可以有一个或几十个这样的接口。
 
-Here are some examples of `ifconfig`'s output:
+以下是 `ifconfig` 输出的一些示例：
 
 ```
 $ sudo ifconfig
@@ -90,11 +90,11 @@ enp5s0: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
         inet 10.0.0.23  netmask 255.255.255.0  broadcast 10.0.0.255
         [...]
 ```
-I removed most of the output showing only some of the info. Here the key information is the IP address that is listed after `inet`. In the example above it's `10.0.0.23`. This is the IP address of interface `enp5s0`.
+我删除了大部分输出，只显示了一些信息。这里的关键信息是 `inet` 后面列出的 IP 地址。在上面的例子中是 `10.0.0.23`。这是接口 `enp5s0` 的 IP 地址。
 
-If there is another node, it'll probably be `10.0.0.24` or `10.0.0.21` or something of sorts - the last segment will be the one with a different number.
+如果有另一个节点，它可能是 `10.0.0.24` 或 `10.0.0.21` 之类的——最后一个段是数字不同的那个。
 
-Let's look at another example:
+我们再看一个例子：
 
 ```
 $ sudo ifconfig
@@ -102,14 +102,14 @@ ib0     Link encap:UNSPEC  HWaddr 00-00-00-00-00-00-00-00-00-00-00-00-00-00-00-0
         inet addr:172.0.0.50  Bcast: 172.0.0.255  Mask:255.255.255.0
         [...]
 ```
-Here `ib` typically tells us it's an InfiniBand card, but really it can be any other vendor. I have seen [OmniPath](../network#omni-path) using `ib` for example. Again `inet` tells us the IP of this interface is `172.0.0.50`.
+这里的 `ib` 通常告诉我们它是一个 InfiniBand 卡，但实际上它也可以是任何其他供应商。例如，我见过 [OmniPath](../network#omni-path) 使用 `ib`。同样，`inet` 告诉我们这个接口的 IP 是 `172.0.0.50`。
 
-If you lost me, we want the IP addresses so that we could test if ip:port is open on each node in question.
+如果你跟丢了，我们需要 IP 地址，以便我们可以测试在每个相关节点上 ip:port 是否打开。
 
-Finally, going back to our pair of `10.0.0.1:6000` and `10.0.0.2:6000` let's do an `all_reduce` test using 2 terminals, where we choose `10.0.0.1` as the master host which will coordinate other nodes.
-For testing we will use this helper debug program [torch-distributed-gpu-test.py](./torch-distributed-gpu-test.py).
+最后，回到我们的 `10.0.0.1:6000` 和 `10.0.0.2:6000` 对，让我们使用 2 个终端进行 `all_reduce` 测试，我们选择 `10.0.0.1` 作为主主机来协调其他节点。
+为了测试，我们将使用这个辅助调试程序 [torch-distributed-gpu-test.py](./torch-distributed-gpu-test.py)。
 
-In terminal A:
+在终端 A 中：
 
 ```
 $ ssh 10.0.0.1
@@ -117,7 +117,7 @@ $ python -m torch.distributed.run --role $(hostname -s): --tee 3 --nnodes 2 --np
  --master_addr 10.0.0.1 --master_port 6000 torch-distributed-gpu-test.py
 ```
 
-In terminal B:
+在终端 B 中：
 
 ```
 $ ssh 10.0.0.2
@@ -125,13 +125,13 @@ $ python -m torch.distributed.run --role $(hostname -s): --tee 3 --nnodes 2 --np
  --master_addr 10.0.0.1 --master_port 6000 torch-distributed-gpu-test.py
 ```
 
-Note that I'm using the same `--master_addr 10.0.0.1 --master_port 6000` in both cases because we checked port 6000 is open and we use `10.0.0.1` as the coordinating host.
+请注意，我在两种情况下都使用相同的 `--master_addr 10.0.0.1 --master_port 6000`，因为我们检查了端口 6000 是打开的，并且我们使用 `10.0.0.1` 作为协调主机。
 
-This approach of running things manually from each node is painful and so there are tools that automatically launch the same command on multiple nodes
+这种从每个节点手动运行东西的方法很痛苦，所以有一些工具可以自动在多个节点上启动相同的命令。
 
 **pdsh**
 
-`pdsh` is one such solution - which is like `ssh` but will automatically run the same command on multiple nodes:
+`pdsh` 就是这样一种解决方案 - 它就像 `ssh`，但会自动在多个节点上运行相同的命令：
 
 ```
 PDSH_RCMD_TYPE=ssh pdsh -w 10.0.0.1,10.0.0.2 \
@@ -139,24 +139,24 @@ PDSH_RCMD_TYPE=ssh pdsh -w 10.0.0.1,10.0.0.2 \
  --master_addr 10.0.0.1 --master_port 6000 torch-distributed-gpu-test.py"
 ```
 
-You can see how I folded the 2 sets of commands into 1. If you have more nodes, just add more nodes as `-w` argument.
+您可以看到我如何将 2 组命令折叠成 1 组。如果您有更多节点，只需添加更多节点作为 `-w` 参数即可。
 
 
 **SLURM**
 
-If you use SLURM, it's almost certain that whoever set things up already have all the ports opened for you, so it should just work. But if it doesn't the information in this section should help debug things.
+如果您使用 SLURM，几乎可以肯定的是，设置它的人已经为您打开了所有端口，所以它应该可以正常工作。但如果不行，本节中的信息应该有助于调试。
 
-Here is how you'd use this with SLURM.
+以下是您如何在 SLURM 中使用它。
 
 ```
 #!/bin/bash
-#SBATCH --job-name=test-nodes        # name
-#SBATCH --nodes=2                    # nodes
-#SBATCH --ntasks-per-node=1          # crucial - only 1 task per dist per node!
-#SBATCH --cpus-per-task=10           # number of cores per tasks
-#SBATCH --gres=gpu:8                 # number of gpus
-#SBATCH --time 0:05:00               # maximum execution time (HH:MM:SS)
-#SBATCH --output=%x-%j.out           # output file name
+#SBATCH --job-name=test-nodes        # 名称
+#SBATCH --nodes=2                    # 节点
+#SBATCH --ntasks-per-node=1          # 关键 - 每个 dist 每个节点只有一个任务！
+#SBATCH --cpus-per-task=10           # 每个任务的核心数
+#SBATCH --gres=gpu:8                 # gpu 数量
+#SBATCH --time 0:05:00               # 最大执行时间 (HH:MM:SS)
+#SBATCH --output=%x-%j.out           # 输出文件名
 #
 export GPUS_PER_NODE=8
 export MASTER_ADDR=$(scontrol show hostnames $SLURM_JOB_NODELIST | head -n 1)
@@ -167,47 +167,47 @@ srun --jobid $SLURM_JOBID bash -c 'python -m torch.distributed.run \
 --master_addr $MASTER_ADDR --master_port $MASTER_PORT \
 torch-distributed-gpu-test.py'
 ```
-If you have more than 2 nodes you just need to change the number of nodes and the above script will automatically work for any number of them.
+如果您有超过 2 个节点，您只需要更改节点数，上面的脚本就会自动适用于任何数量的节点。
 
 
 **MPI**:
 
-Another popular way is to use [Message Passing Interface (MPI)](https://en.wikipedia.org/wiki/Message_Passing_Interface). There are a few open source implementations of it available.
+另一种流行的方法是使用[消息传递接口 (MPI)](https://en.wikipedia.org/wiki/Message_Passing_Interface)。有几种开源的实现可用。
 
-To use this tool you first create a `hostfile` that contains your target nodes and the number of processes that should be run on each host. In the example of this section, with 2 nodes and 8 gpus each it'd be:
+要使用此工具，您首先要创建一个 `hostfile`，其中包含您的目标节点以及应在每个主机上运行的进程数。在本节的示例中，有 2 个节点，每个节点有 8 个 gpu，它将是：
 
 ```
 $ cat hostfile
 10.0.0.1:8
 10.0.0.2:8
 ```
-and to run, it's just:
+要运行，只需：
 ```
 $ mpirun --hostfile  -np 16 -map-by ppr:8:node python my-program.py
 ```
 
-Note that I used `my-program.py` here because [torch-distributed-gpu-test.py](./torch-distributed-gpu-test.py) was written to work with `torch.distributed.run` (also known as `torchrun`). With `mpirun` you will have to check your specific implementation to see which environment variable it uses to pass the rank of the program and replace `LOCAL_RANK` with it, the rest should be mostly the same.
+请注意，我在这里使用了 `my-program.py`，因为 [torch-distributed-gpu-test.py](./torch-distributed-gpu-test.py) 是为与 `torch.distributed.run`（也称为 `torchrun`）一起工作而编写的。使用 `mpirun`，您将必须检查您的特定实现，以查看它使用哪个环境变量来传递程序的秩，并用它替换 `LOCAL_RANK`，其余的应该基本相同。
 
-Nuances:
-- You might have to explicitly tell it which interface to use by adding `--mca btl_tcp_if_include 10.0.0.0/24` to match our example. If you have many network interfaces it might use one that isn't open or just the wrong interface.
-- You can also do the reverse and exclude some interfaces. e.g. say you have `docker0` and `lo` interfaces - to exclude those add `--mca btl_tcp_if_exclude docker0,lo`.
+细微差别：
+- 您可能需要通过添加 `--mca btl_tcp_if_include 10.0.0.0/24` 来明确告诉它使用哪个接口以匹配我们的示例。如果您有许多网络接口，它可能会使用一个未打开的或只是错误的接口。
+- 您也可以反过来排除一些接口。例如，假设您有 `docker0` 和 `lo` 接口 - 要排除它们，请添加 `--mca btl_tcp_if_exclude docker0,lo`。
 
-`mpirun` has a gazillion of flags and I will recommend reading its manpage for more information. My intention was only to show you how you could use it. Also different `mpirun` implementations may use different CLI options.
+`mpirun` 有大量的标志，我建议阅读它的手册页以获取更多信息。我的目的只是向您展示如何使用它。此外，不同的 `mpirun` 实现可能会使用不同的 CLI 选项。
 
 
 
-### Solving the Infiniband connection between multiple nodes
+### 解决多个节点之间的 Infiniband 连接问题
 
-In one situation on Azure I got 2 nodes on a shared subnet and when I tried to run the 2 node NCCL test:
+在 Azure 的一个情况下，我在一个共享子网上获得了 2 个节点，当我尝试运行 2 节点 NCCL 测试时：
 
 ```
 NCCL_DEBUG=INFO python -u -m torch.distributed.run --nproc_per_node=1 --nnodes 2 --rdzv_endpoint 10.2.0.4:6000  --rdzv_backend c10d torch-distributed-gpu-test.py
 ```
-I saw in the debug messages that Infiniband interfaces got detected:
+我在调试消息中看到检测到了 Infiniband 接口：
 ```
 node-2:5776:5898 [0] NCCL INFO NET/IB : Using [0]ibP111p0s0:1/IB [1]rdmaP1111p0s2:1/RoCE [RO]; OOB eth0:10.2.0.4<0>
 ```
-But the connection would then time out with the message:
+但是连接随后会超时，并显示以下消息：
 ```
 node-2:5776:5902 [0] transport/net_ib.cc:1296 NCCL WARN NET/IB : Got completion from peer 10.2.0.5<33092> with error 12, opcode 0, len
 0, vendor err 129 (Recv)
@@ -215,33 +215,33 @@ node-2:5776:5902 [0] NCCL INFO transport/net.cc:1134 -> 6
 node-2:5776:5902 [0] NCCL INFO proxy.cc:679 -> 6
 node-2:5776:5902 [0] NCCL INFO proxy.cc:858 -> 6 [Proxy Thread]
 ```
-and nothing works. So here the Ethernet connectivity between 2 nodes works but not the IB interface.
+并且什么也做不了。所以这里两个节点之间的以太网连接正常，但 IB 接口不正常。
 
-There could be a variety of reason for this failing, but of the most likely one is when you're on the cloud and the 2 nodes weren't provisioned so that their IB is connected. So your Ethernet inter-node connectivity works, but it's too slow. Chances are that you need to re-provision the nodes so that they are allocated together. For example, on Azure this means you have to allocate nodes within a special [availability set](https://learn.microsoft.com/en-us/azure/virtual-machines/availability-set-overview?source=recommendations)
+这失败的原因可能有很多，但最可能的一个是当您在云上并且这两个节点没有被配置为它们的 IB 连接时。所以您的以太网节点间连接正常，但速度太慢。很可能您需要重新配置节点，以便将它们一起分配。例如，在 Azure 上，这意味着您必须在特殊的[可用性集](https://learn.microsoft.com/en-us/azure/virtual-machines/availability-set-overview?source=recommendations)中分配节点。
 
-Going back to our case study, once the nodes were deleted and recreated within an availability set the test worked out of the box.
+回到我们的案例研究，一旦节点被删除并在可用性集中重新创建，测试就可以正常工作了。
 
-The individual nodes are often not meant for inter-node communication and often the clouds have the concept of clusters, which are designed for allocating multiple nodes as a group and are already preconfigured to work together.
-
-
+单个节点通常不用于节点间通信，云通常有集群的概念，集群是为将多个节点作为一个组进行分配而设计的，并且已经预先配置为可以协同工作。
 
 
-## Prefixing logs with `node:rank`, interleaved asserts
 
-In this section we will use `torchrun` (`torch.distributed.run`) during the demonstration and at the end of this section similar solutions for other launchers will be listed.
 
-When you have warnings and tracebacks (or debug prints), it helps a lot to prefix each log line with its `hostname:rank` prefix, which is done by adding `--role $(hostname -s): --tee 3` to `torchrun`:
+## 使用 `node:rank` 为日志添加前缀，交错断言
+
+在本节中，我们将在演示期间使用 `torchrun` (`torch.distributed.run`)，在本节末尾将列出其他启动器的类似解决方案。
+
+当您有警告和回溯（或调试打印）时，在每行日志前加上其 `hostname:rank` 前缀会很有帮助，这可以通过向 `torchrun` 添加 `--role $(hostname -s): --tee 3` 来完成：
 
 ```
 python -m torch.distributed.run --role $(hostname -s): --tee 3 --nnodes 1 --nproc_per_node 2 \
 torch-distributed-gpu-test.py
 ```
 
-Now each log line will be prefixed with `[hostname:rank]`
+现在每行日志都会以 `[hostname:rank]` 为前缀。
 
-Note that the colon is important.
+注意冒号很重要。
 
-If you're in a SLURM environment the above command line becomes:
+如果您在 SLURM 环境中，上面的命令行将变为：
 
 ```
 srun --jobid $SLURM_JOBID bash -c 'python -m torch.distributed.run \
@@ -251,9 +251,9 @@ srun --jobid $SLURM_JOBID bash -c 'python -m torch.distributed.run \
 torch-distributed-gpu-test.py'
 ```
 
-Of course adjust your environment variables to match, this was just an example.
+当然，请根据需要调整您的环境变量，这只是一个例子。
 
-Important! Note, that I'm using a single quoted string of commands passed to `bash -c`. This way `hostname -s` command is delayed until it's run on each of the nodes. If you'd use double quotes above, `hostname -s` will get executed on the starting node and then all nodes will get the same hostname as the prefix, which defeats the purpose of using these flags. So if you use double quotes you need to rewrite the above like so:
+重要！请注意，我正在使用传递给 `bash -c` 的单引号字符串命令。这样，`hostname -s` 命令会延迟到在每个节点上运行时才执行。如果您在上面使用双引号，`hostname -s` 将在启动节点上执行，然后所有节点都将获得相同的主机名作为前缀，这违背了使用这些标志的目的。因此，如果您使用双引号，则需要像这样重写上面的内容：
 
 ```
 srun --jobid $SLURM_JOBID bash -c "python -m torch.distributed.run \
@@ -263,11 +263,11 @@ srun --jobid $SLURM_JOBID bash -c "python -m torch.distributed.run \
 torch-distributed-gpu-test.py"
 ```
 
-`$SLURM_PROCID` is escaped too as it needs to be specific to each node and it's unknown during the launch of the slurm job on the main node. So there are 2 `\$` escapes in this version of the command.
+`$SLURM_PROCID` 也被转义了，因为它需要特定于每个节点，并且在主节点上启动 slurm 作业时是未知的。所以在这个版本的命令中有 2 个 `\$` 转义。
 
-This prefixing functionality is also super-helpful when one gets the distributed program fail and which often results in interleaved tracebacks that are very difficult to interpret. So by `grep`ing for one `node:rank` string of choice, it's now possible to reconstruct the real error message.
+当分布式程序失败时，这种前缀功能也非常有用，因为它通常会导致交错的回溯，很难解释。因此，通过 `grep` 查找一个选择的 `node:rank` 字符串，现在可以重建真正的错误消息。
 
-For example, if you get a traceback that looks like:
+例如，如果您得到如下所示的回溯：
 
 ```
   File "/path/to/training/dataset.py", line 785, in __init__
@@ -284,7 +284,7 @@ AttributeError: 'list' object has no attribute 'sum'
 AttributeError: 'list' object has no attribute 'sum'
 ```
 
-and when it's dozens of frames over 8 nodes it can't be made sense of, but the above `-tee` + `--role` addition will generate:
+当它在 8 个节点上有几十个帧时，很难理解，但是上面的 `-tee` + `--role` 添加将生成：
 
 ```
 [host1:0]  File "/path/to/training/dataset.py", line 785, in __init__
@@ -300,7 +300,7 @@ and when it's dozens of frames over 8 nodes it can't be made sense of, but the a
 [host1:2]AttributeError: 'list' object has no attribute 'sum'
 [host1:3]AttributeError: 'list' object has no attribute 'sum'
 ```
-and you can `grep` this output for just one `host:rank` prefix, which gives us:
+你可以 `grep` 这个输出只找一个 `host:rank` 前缀，这会给我们：
 
 ```
 $ grep "[host1:0]" log.txt
@@ -309,37 +309,37 @@ $ grep "[host1:0]" log.txt
 [host1:0]AttributeError: 'list' object has no attribute 'sum'
 ```
 
-and voila, you can now tell what really happened. And as I mentioned earlier there can be easily a hundred to thousands of interleaved traceback lines there.
+瞧，你现在可以知道到底发生了什么。正如我之前提到的，那里很容易有一百到一千个交错的回溯行。
 
-Also, if you have just one node, you can just pass `-tee 3` and there is no need to pass `--role`.
+另外，如果您只有一个节点，您可以只传递 `-tee 3`，而不需要传递 `--role`。
 
-If `hostname -s` is too long, but you have each host with its own sequence number like:
+如果 `hostname -s` 太长，但您的每个主机都有自己的序列号，例如：
 ```
 [really-really-really-long-hostname-5:0]
 [really-really-really-long-hostname-5:1]
 [really-really-really-long-hostname-5:2]
 ```
-you can of course make it shorter by replacing `hostname -s` with `hostname -s | tr -dc '0-9'`, which would lead to much shorter prefixes:
+您当然可以通过将 `hostname -s` 替换为 `hostname -s | tr -dc '0-9'` 来使其更短，这将导致更短的前缀：
 ```
 [5:0]
 [5:1]
 [5:2]
 ```
 
-And, of course, if you're doing debug prints, then to solve this exact issue you can use [`printflock`](./torch-distributed-hanging-solutions.md#good-old-print).
+当然，如果您正在进行调试打印，那么要解决这个问题，您可以使用 [`printflock`](./torch-distributed-hanging-solutions.md#good-old-print)。
 
-Here is how you accomplish the same feat with other launchers:
+以下是您如何使用其他启动器实现相同功能的方法：
 
-- `srun` in SLURM: add `--label`
-- `openmpi`: add `--tag-output`
-- `accelerate`: you can just pass the same `-tee` + `--role` flags as in `torchrun`
+- `srun` 在 SLURM 中：添加 `--label`
+- `openmpi`：添加 `--tag-output`
+- `accelerate`：您可以像在 `torchrun` 中一样传递相同的 `-tee` + `--role` 标志
 
 
-## Dealing with Async CUDA bugs
+## 处理异步 CUDA 错误
 
-When using CUDA, failing pytorch programs very often produce a python traceback that makes no sense or can't be acted upon. This is because due to CUDA's async nature - when a CUDA kernel is executed, the program has already moved on and when the error happened the context of the program isn't there. The async functionality is there to make things faster, so that while the GPU is churning some `matmul` the program on CPU could already start doing something else.
+当使用 CUDA 时，失败的 pytorch 程序通常会产生一个毫无意义或无法操作的 python 回溯。这是因为 CUDA 的异步特性——当执行 CUDA 内核时，程序已经继续运行，当错误发生时，程序的上下文已经不存在了。异步功能是为了让事情更快，这样当 GPU 在处理一些 `matmul` 时，CPU 上的程序已经可以开始做其他事情了。
 
-At other times some parts of the system will actually tell you that they couldn't generate the correct traceback, as in this error:
+在其他时候，系统的某些部分实际上会告诉您它们无法生成正确的回溯，如以下错误所示：
 
 ```
 [E ProcessGroupNCCL.cpp:414] Some NCCL operations have failed or timed out. Due to the
@@ -347,76 +347,76 @@ asynchronous nature of CUDA kernels, subsequent GPU operations might run on corr
 incomplete data. To avoid this inconsistency, we are taking the entire process down.
 ```
 
-There are a few solutions.
+有几种解决方案。
 
-If the failure is instant and can be reproduced on CPU (not all programs work on CPU), simply re-rerun it after hiding your GPUs. This is how you do it:
+如果故障是即时的，并且可以在 CPU 上重现（并非所有程序都可以在 CPU 上工作），只需在隐藏您的 GPU 后重新运行它。您可以这样做：
 
 ```
 CUDA_VISIBLE_DEVICES="" python my-pytorch-program.py
 ```
 
-The env var `CUDA_VISIBLE_DEVICES` is used to manually limit the visibility of GPUs to the executed program. So for example if you have 8 gpus and you want to run program1.py with first 4 gpus and program2.py with the remaining 2 gpus you can do:
+环境变量 `CUDA_VISIBLE_DEVICES` 用于手动限制 GPU 对执行程序的可见性。因此，例如，如果您有 8 个 gpu，并且您想用前 4 个 gpu 运行 program1.py，用剩余的 2 个 gpu 运行 program2.py，您可以这样做：
 
 ```
 CUDA_VISIBLE_DEVICES="0,1,2,3" python my-pytorch-program1.py
 CUDA_VISIBLE_DEVICES="4,5,6,7" python my-pytorch-program2.py
 ```
-and the second program won't be the wiser that it's not using GPUs 0-3.
+第二个程序不会知道它没有使用 GPU 0-3。
 
-But in the case of debug we are hiding all GPUs, by setting `CUDA_VISIBLE_DEVICES=""`.
+但是在调试的情况下，我们通过设置 `CUDA_VISIBLE_DEVICES=""` 来隐藏所有 GPU。
 
-Now the program runs on CPU and you will get a really nice traceback and will fix the problem in no time.
+现在程序在 CPU 上运行，您将得到一个非常好的回溯，并可以立即解决问题。
 
-But, of course, if you your program requires multiple GPUs this won't work. And so here is another solution.
+但是，当然，如果您的程序需要多个 GPU，这将无法工作。所以这里有另一个解决方案。
 
-Rerun your program after setting this environment variable:
+在设置此环境变量后重新运行您的程序：
 
 ```
 CUDA_LAUNCH_BLOCKING=1 python my-pytorch-program.py
 ```
 
-This variable tells pytorch (or any other CUDA-based program) to turn its async nature off everywhere and now all operations will be synchronous. So when the program crashes you should now get a perfect traceback and you will know exactly what ails your program.
+这个变量告诉 pytorch（或任何其他基于 CUDA 的程序）关闭其所有地方的异步特性，现在所有操作都将是同步的。所以当程序崩溃时，您现在应该会得到一个完美的回溯，并且您会确切地知道是什么困扰着您的程序。
 
-In theory enabling this variable should make everything run really slow, but in reality it really depends on your software. We did the whole of BLOOM-176B training using `CUDA_LAUNCH_BLOCKING=1` with [`Megatron-Deepspeed`](https://github.com/bigscience-workshop/Megatron-DeepSpeed) and had zero slowdown - we had to use it as pytorch was hanging without it and we had no time to figure the hanging out.
+理论上，启用此变量应该会让一切运行得非常慢，但实际上这真的取决于您的软件。我们用 `CUDA_LAUNCH_BLOCKING=1` 和 [`Megatron-Deepspeed`](https://github.com/bigscience-workshop/Megatron-DeepSpeed) 进行了整个 BLOOM-176B 训练，并且没有减速——我们必须使用它，因为没有它 pytorch 就会挂起，我们没有时间去弄清楚挂起的原因。
 
-So, yes, when you switch from async to sync nature, often it can hide some subtle race conditions, so there are times that a hanging disappears as in the example I shared above. So measure your throughput with and without this flag and sometimes it might actual not only help with getting an in-context traceback but actually solve your problem altogether.
+所以，是的，当你从异步切换到同步时，它通常可以隐藏一些微妙的竞争条件，所以有时挂起会像我上面分享的例子一样消失。所以用和不用这个标志来测量你的吞吐量，有时它实际上不仅有助于获得上下文回溯，而且实际上可以完全解决你的问题。
 
-Note: [NCCL==2.14.3 coming with `pytorch==1.13` hangs](https://github.com/NVIDIA/nccl/issues/750) when `CUDA_LAUNCH_BLOCKING=1` is used. So don't use it with that version of pytorch. The issue has been fixed in `nccl>=2.17` which should be included in `pytorch==2.0`.
-
-
+注意：当使用 `CUDA_LAUNCH_BLOCKING=1` 时，[NCCL==2.14.3 附带的 `pytorch==1.13` 会挂起](https://github.com/NVIDIA/nccl/issues/750)。所以不要在那个版本的 pytorch 中使用它。这个问题已在 `nccl>=2.17` 中修复，该版本应包含在 `pytorch==2.0` 中。
 
 
-## segfaults and getting a backtrace from a core file
-
-It's not uncommon for a complex pytorch program to segfault and drop a core file. Especially if
-you're using complex extensions like NCCL.
-
-The corefile is what the program generates when it crashes on a low-level - e.g. when using a python extension - such as a CUDA kernel or really any library that is coded directly in some variant of C or another language and made accessible in python through some binding API. The most common cause of a segfault is when such software accesses memory it has not allocated. For example, a program may try to free memory it hasn't allocated. But there could be many other reasons.
-
-When a segfault event happens Python can't do anything, as the proverbial carpet is pulled out from under its feet, so it can't generate an exception or even write anything to the output.
-
-In these situation one must go and analyse the libC-level calls that lead to the segfault, which is luckily saved in the core file.
-
-If your program crashed, you will often find a file that will look something like: `core-python-3097667-6`
 
 
-Before we continue make sure you have `gdb` installed:
+## 段错误和从核心文件中获取回溯
+
+对于复杂的 pytorch 程序来说，段错误并生成核心文件并不少见。特别是如果您
+正在使用像 NCCL 这样的复杂扩展。
+
+核心文件是程序在低级别崩溃时生成的——例如，当使用 python 扩展时——例如 CUDA 内核或实际上任何用 C 或其他语言的变体直接编码并通过某些绑定 API 在 python 中可访问的库。段错误最常见的原因是当此类软件访问其未分配的内存时。例如，程序可能会尝试释放其未分配的内存。但可能还有许多其他原因。
+
+当段错误事件发生时，Python 无能为力，因为 proverbial 地毯被从它脚下抽走了，所以它无法生成异常，甚至无法向输出写入任何内容。
+
+在这种情况下，必须去分析导致段错误的 libC 级调用，幸运的是，这些调用保存在核心文件中。
+
+如果您的程序崩溃了，您通常会找到一个看起来像这样的文件：`core-python-3097667-6`
+
+
+在我们继续之前，请确保您已安装 `gdb`：
 ```
 sudo apt-get install gdb
 ```
 
-Now make sure you know the path to the python executable that was used to run the program that crashed. If you have multiple python environment you have to activate the right environment first. If you don't `gdb` may fail to unpack the core file.
+现在，请确保您知道用于运行崩溃程序的 python 可执行文件的路径。如果您有多个 python 环境，您必须首先激活正确的环境。否则 `gdb` 可能无法解压核心文件。
 
-So typically I'd go:
+所以我通常会这样做：
 
 ```
 conda activate my-env
 gdb python core-python-3097667-6
 ```
-- adjust `my-env` to whatever env you use, or instead of conda use whatever way you use to activate your python environment - and perhaps you're using the system-wise python and then you don't need to activate anything.
-- adjust the name of the core file to the file you have gotten - it's possible that there are many - pick the latest then.
+- 根据您使用的环境调整 `my-env`，或者如果您使用其他方式来激活您的 python 环境，请使用该方式——也许您使用的是系统范围的 python，那么您就不需要激活任何东西。
+- 将核心文件的名称调整为您获得的文件——可能有很多——然后选择最新的。
 
-Now `gdb` will churn for a bit and will give you a prompt where you type: `bt`. We will use an actual core file here:
+现在 `gdb` 会运行一会儿，然后给你一个提示，你在那里输入：`bt`。我们将在这里使用一个实际的核心文件：
 
 ```
 (gdb) bt
@@ -435,80 +435,80 @@ Now `gdb` will churn for a bit and will give you a prompt where you type: `bt`. 
 #10 0x0000147539872dd3 in clone () from /lib64/libc.so.6
 ```
 
-and there you go. How do you make sense of it?
+就这样。你怎么理解它呢？
 
-Well, you go from the bottom of the stack to the top. You can tell that a `clone` call was made in `libc` which then called `start_thread` in `libpthread` and then if you keep going there are a bunch of calls in the torch libraries and finally we can see that the program terminated itself, completing with `raise` from `libc` which told the Linux kernel to kill the program and create the core file.
+嗯，你从堆栈的底部到顶部。你可以看出在 `libc` 中进行了一个 `clone` 调用，然后它调用了 `libpthread` 中的 `start_thread`，然后如果你继续看，你会发现在 torch 库中有一些调用，最后我们可以看到程序自己终止了，最终以 `libc` 的 `raise` 结束，它告诉 Linux 内核杀死程序并创建核心文件。
 
-This wasn't an easy to understand backtrace.
+这不是一个容易理解的回溯。
 
-footnote: Yes, python calls it a *traceback* and elsewhere it's called a *backtrace* - it's confusing, but it's more or less the same thing.
+脚注：是的，python 称之为 *traceback*，其他地方称之为 *backtrace* - 这很令人困惑，但它们或多或少是同一回事。
 
-Actually I had to ask pytorch devs for help and received:
+实际上，我不得不向 pytorch 开发人员寻求帮助，并收到了：
 
-- PyTorch `ProcessGroup` watchdog thread caught an asynchronous error from NCCL
-- This error is an `“unhandled system error”` which in this particular case turned out to be an IB-OPA error
-- The `ProcessGroup`’s `WorkCleanUp` thread rethrew the error so that the main process would crash and the user would get notified (otherwise this async error would not surface)
+- PyTorch `ProcessGroup` 看门狗线程从 NCCL 捕获了一个异步错误
+- 此错误是一个“未处理的系统错误”，在这种特殊情况下，它原来是一个 IB-OPA 错误
+- `ProcessGroup` 的 `WorkCleanUp` 线程重新抛出了该错误，以便主进程会崩溃，并通知用户（否则此异步错误不会出现）
 
-Trust me there are times when even if you're inexperienced the backtrace can give you enough of a hint to where you should look for troubleshooting.
+相信我，有时候即使你没有经验，回溯也可以给你足够的提示，让你知道应该去哪里进行故障排除。
 
-But fear not - most of the time you won't need to understand the traceback. Ideally you'd just attach the core file to your filed Issue. But it can easily be 5GB large. So the developers that will be trying to help you will ask you to generate a `gdb` backtrace and now you know how to do that.
+但是不要害怕 - 大多数时候您不需要理解回溯。理想情况下，您只需将核心文件附加到您提交的 Issue 中。但它可能很容易有 5GB 大。所以试图帮助您的开发人员会要求您生成一个 `gdb` 回溯，现在您知道该怎么做了。
 
-I didn't promise it'll be easy, I just showed you where to start.
+我没说这会很容易，我只是告诉你从哪里开始。
 
-Now another useful details is that many programs these days run multiple threads. And `bt` only shows the main thread of the process. But, often, it can be helpful to see where other threads in the process were when segfault has happened. For that you simply type 2 commands at the `(gdb)` prompt:
+现在另一个有用的细节是，如今许多程序都运行多个线程。而 `bt` 只显示进程的主线程。但是，通常，当段错误发生时，查看进程中其他线程的位置会很有帮助。为此，您只需在 `(gdb)` 提示符下键入 2 个命令：
 
 ```
 (gdb) thread apply all bt
 (gdb) bt
 ```
 
-and this time around you typically will get a massive report, one backtrace per thread.
+这一次，您通常会得到一份巨大的报告，每个线程一个回溯。
 
 
 
 
 ## py-spy
 
-This is a super-useful tool for analysing hanging programs. For example, when a you have a resource deadlock or there is an issue with a network connection.
+这是一个非常有用的工具，用于分析挂起的程序。例如，当您遇到资源死锁或网络连接问题时。
 
-You will find an exhaustive coverage of this tool [here](./torch-distributed-hanging-solutions.md#py-spy).
+您可以在[此处](./torch-distributed-hanging-solutions.md#py-spy)找到对此工具的详尽介绍。
 
 
 ## strace
 
-Similar to [py-spy](./torch-distributed-hanging-solutions.md#py-spy), `strace` is a super-useful tool which traces any running application at the low-level system calls - e.g. `libC` and alike.
+与 [py-spy](./torch-distributed-hanging-solutions.md#py-spy) 类似，`strace` 是一个非常有用的工具，它可以在低级系统调用（例如 `libC` 等）上跟踪任何正在运行的应用程序。
 
-For example, run:
+例如，运行：
 ```
 strace python -c "print('strace')"
 ```
-and you will see everything that is done at the system call level as the above program runs.
+您将看到上述程序运行时在系统调用级别上完成的所有操作。
 
-But usually it's more useful when you have a stuck program that spins all CPU cores at 100% but nothing happens and you want to see what's it doing. In this situation you simply attached to the running program like so:
+但通常它更有用的是当你有一个卡住的程序，它让所有 CPU 核心都以 100% 的速度旋转，但什么也没发生，而你想看看它在做什么。在这种情况下，你只需像这样附加到正在运行的程序上：
 
 ```
 strace --pid PID
 ```
-where you get the PID for example from the output of `top` or `ps`. Typically I just copy-n-paste the PID of the program that consumes the most CPU - `top` usually shows it at the very top of its listing.
+其中，您可以从 `top` 或 `ps` 的输出中获取 PID。通常，我只是复制并粘贴消耗最多 CPU 的程序的 PID - `top` 通常会将其显示在列表的最顶部。
 
-Same as `py-spy` you may need `sudo` perms to attached to an already running process - it all depends on your system setup. But you can always start a program with `strace` as I have shown in the original example.
+与 `py-spy` 一样，您可能需要 `sudo` 权限才能附加到已经运行的进程——这完全取决于您的系统设置。但是您可以像我在原始示例中展示的那样，始终使用 `strace` 启动程序。
 
-Let's look at a small sub-snippet of the output of `strace python -c "print('strace')"`
+让我们看一下 `strace python -c "print('strace')"` 输出的一个小子片段
 
 ```
 write(1, "strace\n", 7strace
 )                 = 7
 ```
-Here we can see that a write call was executed on filedescriptor `1`, which almost always is `stdout` (`stdin` being 0, and `stderr` being 2).
+在这里我们可以看到在文件描述符 `1` 上执行了一个写调用，它几乎总是 `stdout`（`stdin` 是 0，`stderr` 是 2）。
 
-If you're not sure what a filedescriptor is pointing to, normally you can tell from `strace`'s output itself. But you can also do:
+如果您不确定文件描述符指向什么，通常您可以从 `strace` 的输出本身看出来。但您也可以这样做：
 
 ```
 ls -l /proc/PID/fd
 ```
-where PID is the pid of the currently running program you're trying to investigate.
+其中 PID 是您正在尝试调查的当前正在运行的程序的 pid。
 
-For example, when I run the above while running a pytest test with gpus, I got (partial output):
+例如，当我在运行一个带有 gpu 的 pytest 测试时运行上面的命令，我得到了（部分输出）：
 ```
 l-wx------ 1 stas stas 64 Mar  1 17:22 5 -> /dev/null
 lr-x------ 1 stas stas 64 Mar  1 17:22 6 -> /dev/urandom
@@ -516,16 +516,16 @@ lrwx------ 1 stas stas 64 Mar  1 17:22 7 -> /dev/nvidiactl
 lrwx------ 1 stas stas 64 Mar  1 17:22 8 -> /dev/nvidia0
 lr-x------ 1 stas stas 64 Mar  1 17:22 9 -> /dev/nvidia-caps/nvidia-cap2
 ```
-so you can see that a device `/dev/null` is open as FD (file descriptor) 5, `/dev/urandom` as FD 6, etc.
+所以你可以看到一个设备 `/dev/null` 作为 FD（文件描述符）5 打开，`/dev/urandom` 作为 FD 6，等等。
 
-Now let's go look at another snippet from our `strace` run.
+现在让我们看另一个来自我们的 `strace` 运行的片段。
 
 ```
 access("/etc/ld.so.preload", R_OK)      = -1 ENOENT (No such file or directory)
 ```
-Here it tried to see if file `/etc/ld.so.preload` exists, but as we can see it doesn't - this can be useful if some shared library is missing - you can see where it's trying to load it from.
+在这里，它试图查看文件 `/etc/ld.so.preload` 是否存在，但正如我们所见，它不存在 - 如果缺少某个共享库，这可能很有用 - 您可以看到它试图从哪里加载它。
 
-Let's try another one:
+我们再试一个：
 ```
 openat(AT_FDCWD, "/lib/x86_64-linux-gnu/libpthread.so.0", O_RDONLY|O_CLOEXEC) = 3
 read(3, "\177ELF\2\1\1\0\0\0\0\0\0\0\0\0\3\0>\0\1\0\0\0\0\0\0\0\0\0\0\0"..., 832) = 832
@@ -536,9 +536,9 @@ mmap(0x7f8028809000, 4096, PROT_READ, MAP_PRIVATE|MAP_FIXED|MAP_DENYWRITE, 3, 0x
 mmap(0x7f802880a000, 8192, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_DENYWRITE, 3, 0x2000) = 0x7f802880a000
 close(3)
 ```
-here we can see that it opens `/lib/x86_64-linux-gnu/libpthread.so.0` and assigns it FD 3, it then reads 832 chars from FD 3, (we can also see that the first chars are ELF - which stands for a shared library format), then memory maps it and closes that file.
+在这里我们可以看到它打开了 `/lib/x86_64-linux-gnu/libpthread.so.0` 并将其分配给 FD 3，然后它从 FD 3 读取 832 个字符（我们还可以看到第一个字符是 ELF - 这代表共享库格式），然后内存映射它并关闭该文件。
 
-In this following example, we see a python cached file is opened, its filepointer is moved to 0, and then it's read and closed.
+在下面的例子中，我们看到一个 python 缓存文件被打开，它的文件指针被移动到 0，然后它被读取并关闭。
 ```
 openat(AT_FDCWD, "/home/stas/anaconda3/envs/py38-pt113/lib/python3.8/__pycache__/abc.cpython-38.pyc", O_RDONLY|O_CLOEXEC) = 3
 fstat(3, {st_mode=S_IFREG|0664, st_size=5329, ...}) = 0
@@ -550,16 +550,16 @@ read(3, "U\r\r\n\0\0\0\0\24\216\177c\211\21\0\0\343\0\0\0\0\0\0\0\0\0\0\0\0\0\0\
 read(3, "", 1)                          = 0
 close(3)
 ```
-It's important to notice that file descriptors are re-used, so we have seen the same FD 3 twice, but each time it was open to a different file.
+需要注意的是，文件描述符是重复使用的，所以我们看到了两次相同的文件描述符 3，但每次它都打开了不同的文件。
 
-If your program is for example trying to reach to the Internet, you can also tell these calls from `strace` as the program would be reading from a socket file descriptor.
+例如，如果您的程序试图连接到互联网，您也可以从 `strace` 中看到这些调用，因为程序将从一个套接字文件描述符中读取。
 
-So let's run an example on a program that downloads files from the HF hub:
+所以让我们在一个从 HF hub 下载文件的程序上运行一个例子：
 ```
 strace python -c 'import sys; from transformers import AutoConfig; AutoConfig.from_pretrained(sys.argv[1])' t5-small
 ```
 
-here is some relevant to this discussion snippet:
+以下是与本讨论相关的一些片段：
 ```
 socket(AF_INET6, SOCK_STREAM|SOCK_CLOEXEC, IPPROTO_TCP) = 3
 setsockopt(3, SOL_TCP, TCP_NODELAY, [1], 4) = 0
@@ -584,34 +584,34 @@ read(3, 0x2ef7283, 5)                   = -1 EAGAIN (Resource temporarily unavai
 poll([{fd=3, events=POLLIN}], 1, 10000) = 1 ([{fd=3, revents=POLLIN}])
 ```
 
-You can see where that again it uses FD 3 but this time it opens a INET6 socket instead of a file. You can see that it then connects to that socket, polls, reads and writes from it.
+您可以看到它再次使用 FD 3，但这次它打开的是一个 INET6 套接字而不是文件。您可以看到它然后连接到该套接字，轮询，并从中读取和写入。
 
-There are many other super useful understandings one can derive from using this tool.
+使用这个工具还可以得出许多其他非常有用的理解。
 
-BTW, if you don't want to scroll up-down, you can also save the output to a file:
+顺便说一句，如果您不想上下滚动，也可以将输出保存到文件中：
 ```
 strace -o strace.txt python -c "print('strace')"
 ```
 
-Now, since you're might want to strace the program from the very beginning, for example to sort out some race condition on a distributed filesystem, you will want to tell it to follow any forked processes. This what the `-f` flag is for:
+现在，由于您可能想从一开始就跟踪程序，例如为了解决分布式文件系统上的某些竞争条件，您需要告诉它跟踪任何派生的进程。这就是 `-f` 标志的作用：
 
 
 ```
 strace -o log.txt -f python -m torch.distributed.run --nproc_per_node=4 --nnodes=1 --tee 3 test.py
 ```
 
-So here we launch 4 processes and will end up running `strace` on at least 5 of them - the launcher plus 4 processes (each of which may spawn further child processes).
+所以在这里我们启动 4 个进程，最终将在至少 5 个进程上运行 `strace` - 启动器加上 4 个进程（每个进程都可能产生更多的子进程）。
 
-It will conveniently prefix each line with the pid of the program so it should be easy to tell which system was made by which process.
+它会方便地在每行前加上程序的 pid，所以应该很容易区分哪个系统是由哪个进程创建的。
 
-But if you want separate logs per process, then use `-ff` instead of `-f`.
+但如果您想为每个进程单独记录日志，请使用 `-ff` 代替 `-f`。
 
-The `strace` manpage has a ton of other useful options.
+`strace` 手册页有大量其他有用的选项。
 
 
-## Invoke pdb on a specific rank in multi-node training
+## 在多节点训练中对特定 rank 调用 pdb
 
-Once pytorch 2.2 is released you will have a new handy debug feature:
+一旦 pytorch 2.2 发布，您将拥有一个方便的新调试功能：
 
 ```
 import torch.distributed as dist
@@ -623,9 +623,9 @@ def mycode(...):
 
 ```
 
-This is the same as `ForkedPdb` (below) but will automatically break for you on the rank of your choice - rank0 in the example above. Just make sure to call `up;;n` right away when the breakpoint hits to get into your normal code.
+这与 `ForkedPdb`（下面）相同，但会自动在您选择的 rank 上为您设置断点 - 在上面的示例中是 rank0。只需确保在断点命中时立即调用 `up;;n` 即可进入您的正常代码。
 
-Here is what it does underneath:
+以下是其底层实现：
 
 ```
 import sys
@@ -633,8 +633,8 @@ import pdb
 
 class ForkedPdb(pdb.Pdb):
     """
-    PDB Subclass for debugging multi-processed code
-    Suggested in: https://stackoverflow.com/questions/4716533/how-to-attach-debugger-to-a-python-subproccess
+    用于调试多进程代码的 PDB 子类
+    建议见：https://stackoverflow.com/questions/4716533/how-to-attach-debugger-to-a-python-subproccess
     """
     def interaction(self, *args, **kwargs):
         _stdin = sys.stdin
@@ -652,17 +652,17 @@ def mycode():
     dist.barrier()
 
 ```
-so you can code it yourself as well.
+所以你也可以自己编写代码。
 
-And you can use that `ForkedPdb` code for normal forked applications, minus the `dist` calls.
+您也可以将 `ForkedPdb` 代码用于普通的分叉应用程序，减去 `dist` 调用。
 
 
 
-## Floating point math discrepancies on different devices
+## 不同设备上的浮点数学差异
 
-It's important to understand that depending on which device the floating point math is performed on the outcomes can be different. For example doing the same floating point operation on a CPU and a GPU may lead to different outcomes, similarly when using 2 different GPU architectures, and even more so if these are 2 different types of accelerators (e.g. NVIDIA vs. AMD GPUs).
+重要的是要理解，根据执行浮点数学的设备，结果可能会有所不同。例如，在 CPU 和 GPU 上执行相同的浮点运算可能会导致不同的结果，同样，当使用两种不同的 GPU 架构时，尤其是在使用两种不同类型的加速器（例如 NVIDIA 与 AMD GPU）时更是如此。
 
-Here is an example of discrepancies I was able to get doing the same simple floating point math on an 11 Gen Intel i7 CPU and an NVIDIA A100 80GB (PCIe) GPU:
+以下是我在 11 代 Intel i7 CPU 和 NVIDIA A100 80GB (PCIe) GPU 上执行相同简单浮点数学运算时得到的差异示例：
 
 ```
 import torch
@@ -677,32 +677,32 @@ b = do_math(torch.device("cuda"))
 
 torch.testing.assert_close(a, b, rtol=0.0, atol=0.0)
 ```
-when we run it we get 2 out of 10 elements mismatch:
+当我们运行它时，我们得到 10 个元素中有 2 个不匹配：
 ```
 7.94328212738037109375
 7.94328308105468750000
 [...]
-AssertionError: Tensor-likes are not equal!
+AssertionError: 张量不相等！
 
-Mismatched elements: 2 / 10 (20.0%)
-Greatest absolute difference: 9.5367431640625e-07 at index (9,)
-Greatest relative difference: 1.200604771156577e-07 at index (9,)
+不匹配的元素: 2 / 10 (20.0%)
+最大绝对差: 9.5367431640625e-07 在索引 (9,)
+最大相对差: 1.200604771156577e-07 在索引 (9,)
 ```
 
 
-This was a simple low-dimensional example, but in reality the tensors are much bigger and will typically end up having more mismatches.
+这是一个简单的低维示例，但实际上张量要大得多，通常最终会有更多的不匹配。
 
-Now you might say that the `1e-6` discrepancy can be safely ignored. And it's often so as long as this is a final result. If this tensor from the example above is now fed through a 100 layers of `matmul`s, this tiny discrepancy is going to compound and spread out to impact many other elements with the final outcome being quite different from the same action performed on another type of device.
+现在您可能会说 `1e-6` 的差异可以安全地忽略。只要这是最终结果，通常是这样。如果上面示例中的这个张量现在通过 100 层的 `matmul`，这个微小的差异将会复合并扩散，从而影响许多其他元素，最终结果与在另一类设备上执行的相同操作大不相同。
 
-For example, see this [discussion](https://github.com/deepspeedai/DeepSpeed/issues/4932) - the users reported that when doing Llama-2-7b inference they were getting quite different logits depending on how the model was initialized. To clarify the initial discussion was about Deepspeed potentially being the problem, but in later comments you can see that it was reduced to just which device the model's buffers were initialized on. The trained weights aren't an issue they are loaded from the checkpoint, but the buffers are recreated from scratch when the model is loaded, so that's where the problem emerges.
+例如，请参阅此[讨论](https://github.com/deepspeedai/DeepSpeed/issues/4932) - 用户报告说，在进行 Llama-2-7b 推理时，他们得到的 logits 会根据模型的初始化方式而有很大差异。需要澄清的是，最初的讨论是关于 Deepspeed 可能是问题所在，但在后面的评论中，您可以看到它被简化为仅取决于模型的缓冲区是在哪个设备上初始化的。训练好的权重不是问题，它们是从检查点加载的，但是缓冲区在加载模型时是从头开始重新创建的，所以问题就出在这里。
 
-It's uncommon that small variations make much of a difference, but sometimes the difference can be clearly seen, as in this example where the same image is produced on a CPU and an MPS device.
+小的变化通常不会产生太大的影响，但有时差异会很明显，就像在这个例子中，同一张图片在 CPU 和 MPS 设备上产生。
 
 ![](images/math-fp-discrepancy-outcome-lizard.png)
 
-This snapshot and the commentary come from this [PyTorch Issue thread](https://github.com/pytorch/pytorch/issues/84936#issuecomment-1246084645).
+这张快照和评论来自这个 [PyTorch Issue 讨论串](https://github.com/pytorch/pytorch/issues/84936#issuecomment-1246084645)。
 
-If you're curious where I pulled this code from - this is a simplified reduction of this original code in [modeling_llama.py](https://github.com/huggingface/transformers/blob/3f69f415adcbdaedec154ba8eac220ef3276975d/src/transformers/models/llama/modeling_llama.py#L130):
+如果您好奇我从哪里获取这段代码 - 这是 [modeling_llama.py](https://github.com/huggingface/transformers/blob/3f69f415adcbdaedec154ba8eac220ef3276975d/src/transformers/models/llama/modeling_llama.py#L130) 中原始代码的简化版本：
 
 ```
 class LlamaRotaryEmbedding(nn.Module):
@@ -715,3 +715,5 @@ class LlamaRotaryEmbedding(nn.Module):
         inv_freq = 1.0 / (self.base ** (torch.arange(0, self.dim, 2).float().to(device) / self.dim))
         self.register_buffer("inv_freq", inv_freq, persistent=False)
 ```
+
+</rewritten_file>
