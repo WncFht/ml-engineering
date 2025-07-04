@@ -3,40 +3,40 @@ title: debug
 createTime: 2025/07/03 00:05:24
 permalink: /notes/notes/rjvges9z/
 ---
-# Troubleshooting NVIDIA GPUs
+# NVIDIA GPU 故障排除
 
-## Glossary
+## 术语表
 
-- DBE: Double Bit ECC Error
-- DCGM: (NVIDIA) Data Center GPU Manager
-- ECC: Error-Correcting Code
-- FB: Frame Buffer
-- SBE: Single Bit ECC Error
-- SDC: Silent Data Corruption
+- DBE: 双比特 ECC 错误
+- DCGM: (NVIDIA) 数据中心 GPU 管理器
+- ECC: 纠错码
+- FB: 帧缓冲
+- SBE: 单比特 ECC 错误
+- SDC: 静默数据损坏
 
-## Xid Errors
+## Xid 错误
 
-No hardware is perfect, sometimes due to the manufacturing problems or due to tear and wear (especially because of exposure to high heat), GPUs are likely to encounter various hardware issues. A lot of these issues get corrected automatically without needing to really understand what's going on. If the application continues running usually there is nothing to worry about. If the application crashes due to a hardware issue it's important to understand why this is so and how to act on it.
+没有硬件是完美的，有时由于制造问题或磨损（特别是由于暴露在高温下），GPU 很可能会遇到各种硬件问题。其中许多问题会自动得到纠正，而无需真正了解发生了什么。如果应用程序继续运行，通常无需担心。如果应用程序由于硬件问题而崩溃，了解原因以及如何处理就非常重要。
 
-A normal user who uses a handful of GPUs is likely to never need to understand GPU-related hardware issues, but if you come anywhere close to massive ML training where you are likely to use hundreds to thousands of GPUs it's certain that you'd want to understand about different hardware issues.
+使用少数 GPU 的普通用户可能永远不需要了解与 GPU 相关的硬件问题，但是如果您接触到大规模 ML 训练，您很可能会使用数百到数千个 GPU，那么您肯定会想了解不同的硬件问题。
 
-In your system logs you are likely to see occasionally Xid Errors like:
+在您的系统日志中，您可能会偶尔看到 Xid 错误，例如：
 
 ```
 NVRM: Xid (PCI:0000:10:1c): 63, pid=1896, Row Remapper: New row marked for remapping, reset gpu to activate.
 ```
 
-To get those logs one of the following ways should work:
+要获取这些日志，以下方法之一应该可行：
 ```
 sudo grep Xid /var/log/syslog
 sudo dmesg -T | grep Xid
 ```
 
-Typically, as long as the training doesn't crash, these errors often indicate issues that automatically get corrected by the hardware.
+通常，只要训练不崩溃，这些错误通常表示硬件自动纠正的问题。
 
-The full list of Xid Errors and their interpretation can be found [here](https://docs.nvidia.com/deploy/xid-errors/index.html).
+Xid 错误的完整列表及其解释可以在[这里](https://docs.nvidia.com/deploy/xid-errors/index.html)找到。
 
-You can run `nvidia-smi -q` and see if there are any error counts reported. For example, in this case of Xid 63, you will see something like:
+您可以运行 `nvidia-smi -q` 并查看是否有任何错误计数报告。例如，在这种 Xid 63 的情况下，您会看到类似以下内容：
 
 ```
 Timestamp                                 : Wed Jun  7 19:32:16 2023
@@ -76,23 +76,23 @@ GPU 00000000:10:1C.0
 [...]
 ```
 
-Here we can see that Xid 63 corresponds to:
+在这里我们可以看到 Xid 63 对应于：
 
 ```
-ECC page retirement or row remapping recording event
+ECC 页面淘汰或行重映射记录事件
 ```
 
-which may have 3 causes: HW Error / Driver Error / FrameBuffer (FB) Corruption
+这可能有 3 个原因：硬件错误 / 驱动程序错误 / 帧缓冲 (FB) 损坏
 
-This error means that one of the memory rows is malfunctioning and that upon either reboot and/or a gpu reset one of the 640 spare memory rows (in A100) will be used to replace the bad row. Therefore we see in the report above that only 639 banks remain (out of 640).
+此错误意味着其中一个内存行出现故障，并且在重新启动和/或 GPU 重置后，将使用 640 个备用内存行之一（在 A100 中）来替换坏行。因此，我们在上面的报告中看到只剩下 639 个 bank（总共 640 个）。
 
-The Volatile section of the `ECC Errors` report above refers to the errors recorded since last reboot/GPU reset. The Aggregate section records the same error since the GPU was first used.
+上面 `ECC Errors` 报告的 Volatile 部分指的是自上次重新启动/GPU 重置以来记录的错误。Aggregate 部分记录了自 GPU 首次使用以来的相同错误。
 
-Now, there are 2 types of errors - Correctable and Uncorrectable. The correctable one is a Single Bit ECC Error (SBE) where despite memory being faulty the driver can still recover the correct value. The uncorrectable one is where more than one bit is faulty and it's called Double Bit ECC Error (DBE). Typically, the driver will retire whole memory pages if 1 DBE or 2 SBE errors occur at the same memory address. For full information see [this document](https://docs.nvidia.com/deploy/dynamic-page-retirement/index.html)
+现在，有两种类型的错误 - 可纠正和不可纠正。可纠正的是单位 ECC 错误 (SBE)，其中尽管内存有故障，驱动程序仍然可以恢复正确的值。不可纠正的是多个位有故障，称为双位 ECC 错误 (DBE)。通常，如果在同一内存地址发生 1 个 DBE 或 2 个 SBE 错误，驱动程序将淘汰整个内存页。有关完整信息，请参阅[此文档](https://docs.nvidia.com/deploy/dynamic-page-retirement/index.html)
 
-A correctable error will not impact the application, a non-correctable one will crash the application. The memory page containing the uncorrectable ECC error will be blacklisted and not accessible until the GPU is reset.
+可纠正的错误不会影响应用程序，不可纠正的错误将导致应用程序崩溃。包含不可纠正的 ECC 错误的内存页将被列入黑名单，直到 GPU 被重置后才能访问。
 
-If there are page scheduled to be retired you will see something like this in the output of `nvidia-smi -q`:
+如果有计划淘汰的页面，您将在 `nvidia-smi -q` 的输出中看到类似以下内容：
 
 ```
     Retired pages
@@ -101,41 +101,41 @@ If there are page scheduled to be retired you will see something like this in th
         Pending Page Blacklist    : Yes
 ```
 
-Each retired page decreases the total memory available to applications. But the maximum amount of pages retired amounts to only 4MB in total, so it doesn't reduce the total available GPU memory by much.
+每个淘汰的页面都会减少应用程序可用的总内存。但是，淘汰的页面总量最多只有 4MB，因此它不会大幅减少可用的 GPU 总内存。
 
-To dive even deeper into the GPU debugging, please refer to [this document](https://docs.nvidia.com/deploy/gpu-debug-guidelines/index.html) - it includes a useful triage chart which helps to determine when to RMA GPUs. This document has additional information about Xid 63-like errors
+要更深入地进行 GPU 调试，请参阅[此文档](https://docs.nvidia.com/deploy/gpu-debug-guidelines/index.html) - 它包含一个有用的分类图表，有助于确定何时对 GPU 进行 RMA。本文档包含有关 Xid 63 类错误的其他信息。
 
-For example it suggests:
+例如，它建议：
 
-> If associated with XID 94, the application that encountered the error needs to be restarted. All other applications on the system can keep running as is until there is a convenient time to reboot for row remapping to activate.
-> See below for guidelines on when to RMA GPUs based on row remapping failures.
+> 如果与 XID 94 相关，则需要重新启动遇到错误的应用程序。系统上的所有其他应用程序可以继续按原样运行，直到有方便的时间重新启动以激活行重映射。
+> 有关基于行重映射故障的 GPU RMA 指南，请参见下文。
 
-If after a reboot the same condition occur for the same memory address, it means that memory remapping has failed and Xid 64 will be emitted again. If this continues it means you have a hardware issue that can't be auto-corrected and the GPU needs to RMA'ed.
+如果在重新启动后，同一内存地址出现相同的情况，则意味着内存重映射失败，并且将再次发出 Xid 64。如果这种情况持续下去，则意味着您有一个无法自动纠正的硬件问题，需要对 GPU 进行 RMA。
 
-At other times you may get Xid 63 or 64 and the application will crash. Which usually will generate additional Xid errors, but most of the time it means that the error was uncorrectable (i.e. it was a DBE sort of an error and then it'll be Xid 48).
+在其他时候，您可能会收到 Xid 63 或 64，并且应用程序会崩溃。这通常会产生额外的 Xid 错误，但大多数时候这意味着错误是不可纠正的（即，它是 DBE 类型的错误，然后它将是 Xid 48）。
 
-As mentioned earlier to reset a GPU you can either simply reboot the machine, or run:
+如前所述，要重置 GPU，您可以简单地重新启动机器，或运行：
 
 ```
 nvidia-smi -r -i gpu_id
 ```
 
-where `gpu_id` is the sequential number of the gpu you want to reset, e.g. `0` for the first GPU. Without `-i` all GPUs will be reset.
+其中 `gpu_id` 是您要重置的 gpu 的序列号，例如 `0` 表示第一个 GPU。没有 `-i`，所有 GPU 都将被重置。
 
-### uncorrectable ECC error encountered
+### 遇到不可纠正的 ECC 错误
 
-If you get an error:
+如果您收到错误：
 ```
 CUDA error: uncorrectable ECC error encountered
 ```
-as in the previous section, checking the output of `nvidia-smi -q` this time for `ECC Errors` entries will tell which GPU is the problematic one. But if you need to do a quick check in order to recycle a node if it has at least one GPU with this issue, you can just do this:
+与上一节一样，这次检查 `nvidia-smi -q` 的 `ECC Errors` 条目输出将告诉您哪个 GPU 是有问题的。但是，如果您需要快速检查以便在节点至少有一个 GPU 出现此问题时回收该节点，您可以这样做：
 
 ```
 $ nvidia-smi -q | grep -i correctable | grep -v 0
             SRAM Uncorrectable            : 1
             SRAM Uncorrectable            : 5
 ```
-On a good node, this should return nothing, as all counters should be 0. But in the example above we had one broken GPU - there were two entries because the full record was:
+在一个好的节点上，这应该不会返回任何内容，因为所有计数器都应该是 0。但是在上面的例子中，我们有一个坏掉的 GPU——有两个条目，因为完整的记录是：
 
 ```
     ECC Errors
@@ -150,27 +150,27 @@ On a good node, this should return nothing, as all counters should be 0. But in 
             DRAM Correctable              : 0
             DRAM Uncorrectable            : 0
 ```
-The first entry is for `Volatile` (errors counted since the last time the GPU driver reload) and the second is for `Aggregate` (total errors counter for the whole life time of the GPU). In this example we see a Volatile counter for SRAM Uncorrectable errors to be 1 and for the life-time counter it's 5 - that is this is not the first time the GPU runs into this problem.
+第一个条目是 `Volatile`（自上次 GPU 驱动程序重新加载以来计数的错误），第二个是 `Aggregate`（GPU 整个生命周期的总错误计数器）。在这个例子中，我们看到 SRAM Uncorrectable 错误的 Volatile 计数器为 1，而生命周期计数器为 5——也就是说，这并不是 GPU 第一次遇到这个问题。
 
-This typically would correspond to Xid 94 error (see: [Xid Errors](#xid-errors), most likely w/o Xid 48.
+这通常对应于 Xid 94 错误（参见：[Xid 错误](#xid-errors)，很可能没有 Xid 48）。
 
-To overcome this issue as in the previous section, reset the problematic GPU:
+要解决此问题，与上一节一样，重置有问题的 GPU：
 ```
 nvidia-smi -r -i gpu_id
 ```
-Rebooting the machine will have the same effect.
+重新启动机器将有同样的效果。
 
-Now when it comes to Aggregate SRAM Uncorrectable errors, if you have more than 4, that's usually a reason to RMA that GPU.
+现在，关于聚合 SRAM 不可纠正错误，如果您有超过 4 个，这通常是 RMA 该 GPU 的原因。
 
 
 
-## Running diagnostics
+## 运行诊断
 
-If you suspect one or mode NVIDIA GPUs are broken on a given node, `dcgmi` is a great tool to quickly find any bad GPUs.
+如果您怀疑给定节点上有一个或多个 NVIDIA GPU 损坏，`dcgmi` 是一个快速查找任何坏 GPU 的好工具。
 
-NVIDIA® Data Center GPU Manager (DCGM) is documented [here](https://docs.nvidia.com/datacenter/dcgm/latest/user-guide/index.html) and can be downloaded from [here](https://github.com/NVIDIA/DCGM#quickstart).
+NVIDIA® Data Center GPU Manager (DCGM) 的文档在[这里](https://docs.nvidia.com/datacenter/dcgm/latest/user-guide/index.html)，可以从[这里](https://github.com/NVIDIA/DCGM#quickstart)下载。
 
-Here is an example slurm script that will run very in-depth diagnostics (`-r 3`), which will take about 10 minutes to complete on an 8-GPU node:
+这是一个 slurm 脚本示例，它将运行非常深入的诊断（`-r 3`），在一个 8-GPU 节点上大约需要 10 分钟才能完成：
 
 ```
 $ cat dcgmi-1n.slurm
@@ -184,31 +184,31 @@ $ cat dcgmi-1n.slurm
 #SBATCH --output=%x-%j.out
 
 set -x -e
-echo "START TIME: $(date)"
+echo "开始时间: $(date)"
 srun --output=%x-%j-%N.out dcgmi diag -r 3
-echo "END TIME: $(date)"
+echo "结束时间: $(date)"
 ```
 
-Now to run it on specific nodes of choice:
+现在在选择的特定节点上运行它：
 ```
 sbatch --nodelist=node-115 dcgmi-1n.slurm
 sbatch --nodelist=node-151 dcgmi-1n.slurm
 sbatch --nodelist=node-170 dcgmi-1n.slurm
 ```
-edit the nodelist argument to point to the node name to run.
+编辑 nodelist 参数以指向要运行的节点名称。
 
-If the node is drained or downed and you can't launch a slurm job using this node, just `ssh` into the node and run the command directly on the node:
+如果节点已排空或已关闭，并且您无法使用此节点启动 slurm 作业，只需 `ssh` 到该节点并直接在该节点上运行命令：
 ```
 dcgmi diag -r 3
 ```
-If the diagnostics didn't find any issue, but the application still fails to work, re-run the diagnostics with level 4, which will now take more than 1 hour to complete:
+如果诊断没有发现任何问题，但应用程序仍然无法工作，请使用级别 4 重新运行诊断，现在需要超过 1 小时才能完成：
 ```
 dcgmi diag -r 4
 ```
 
-footnote: apparently silent data corruptions (SDC) can only be detected with `dcgmi diag -r 4` and even then some might be missed. This problem happens occasionally and you may not even be aware that your GPU is messing up the `matmul` at times. I'm pretty sure we had this happen to us, as we were getting weird glitches during training and I spent many days with the NVIDIA team diagnosing the problem, but we failed to do so - eventually the problem disappeared probably because the bad GPU(s) got replaced due to reported failures.
+脚注：显然，静默数据损坏 (SDC) 只能通过 `dcgmi diag -r 4` 检测到，即使这样也可能漏掉一些。这个问题偶尔会发生，您甚至可能不知道您的 GPU 有时会搞砸 `matmul`。我很确定我们遇到过这种情况，因为我们在训练期间遇到了奇怪的故障，我花了很多天与 NVIDIA 团队诊断问题，但我们没有成功——最终问题消失了，可能是因为报告了故障的坏 GPU 被更换了。
 
-For example, if you run into a repeating Xid 64 error it's likely that the diagnostics report will include:
+例如，如果您遇到重复的 Xid 64 错误，诊断报告很可能会包含：
 
 ```
 +---------------------------+------------------------------------------------+
@@ -219,9 +219,9 @@ For example, if you run into a repeating Xid 64 error it's likely that the diagn
 |                           |  remappings are pending                        |
 ```
 
-so you now know to RMA that problematic GPU, if remapping fails.
+所以你现在知道要对那个有问题的 GPU 进行 RMA，如果重映射失败的话。
 
-But, actually, I found that most of the time `-r 2` already detects faulty GPUs. And it takes just a few minutes to complete. Here is an example of the `-r 2` output on a faulty node:
+但是，实际上，我发现大多数时候 `-r 2` 已经可以检测到有故障的 GPU。而且它只需要几分钟就可以完成。这是一个在有故障的节点上 `-r 2` 输出的例子：
 
 ```
 | GPU Memory                | Pass - GPUs: 1, 2, 3, 4, 5, 6, 7               |
@@ -234,20 +234,20 @@ But, actually, I found that most of the time `-r 2` already detects faulty GPUs.
 |                           | ts.
 ```
 
-The `dcgmi` tool contains various other levels of diagnostics, some of which complete in a matter of a few minutes and can be run as a quick diagnostic in the epilogue of SLURM jobs to ensure that the node is ready to work for the next SLURM job, rather than discovering that after the user started their job and it crashed.
+`dcgmi` 工具包含各种其他级别的诊断，其中一些在几分钟内完成，可以作为 SLURM 作业结尾的快速诊断，以确保节点已准备好为下一个 SLURM 作业工作，而不是在用户启动其作业并崩溃后才发现问题。
 
-When filing an RMA report you will be asked to run `nvidia-bug-report` script, the output of which you will need to submit with the RMA request.
+在提交 RMA 报告时，您将被要求运行 `nvidia-bug-report` 脚本，其输出需要与 RMA 请求一起提交。
 
-I usually save the log as well for posterity using one of:
+我通常也用以下命令之一保存日志以备后用：
 ```
 dcgmi diag -r 2 | tee -a dcgmi-r2-`hostname`.txt
 dcgmi diag -r 3 | tee -a dcgmi-r3-`hostname`.txt
 dcgmi diag -r 4 | tee -a dcgmi-r4-`hostname`.txt
 ```
 
-## How to get the VBIOS info
+## 如何获取 VBIOS 信息
 
-GPU VBIOS version might be important when researching issues. Let's add the name and bus id to the query, we get:
+在研究问题时，GPU VBIOS 版本可能很重要。让我们将名称和总线 ID 添加到查询中，我们得到：
 
 ```
 $ nvidia-smi --query-gpu=gpu_name,gpu_bus_id,vbios_version --format=csv
@@ -257,14 +257,14 @@ NVIDIA H100 80GB HBM3, 00000000:04:00.0, 96.00.89.00.01
 NVIDIA H100 80GB HBM3, 00000000:8B:00.0, 96.00.89.00.01
 ```
 
-Hint: to query for dozens of other things, run:
+提示：要查询数十个其他项目，请运行：
 ```
 nvidia-smi --help-query-gpu
 ```
 
-## How to check if your GPU's PCIe generation is supported
+## 如何检查您的 GPU 的 PCIe 代数是否受支持
 
-Check the PCIe bandwidth reports from the system's boot messages:
+检查系统启动信息中的 PCIe 带宽报告：
 
 ```
 $ sudo dmesg | grep -i 'limited by'
@@ -273,15 +273,15 @@ $ sudo dmesg | grep -i 'limited by'
 [   13.301989] pci 0000:8b:00.0: 252.048 Gb/s available PCIe bandwidth, limited by 16.0 GT/s PCIe x16 link at 0000:87:00.0 (capable of 504.112 Gb/s with 32.0 GT/s PCIe x16 link)
 ```
 
-In this example, as PCIe 5 spec is 504Gbps, you can see that on this node only half of the possible bandwidth is usable, because the PCIe switch is gen4. For PCIe specs see [this](../../../network#pcie).
+在这个例子中，由于 PCIe 5 的规格是 504Gbps，你可以看到在这个节点上只有一半的可用带宽，因为 PCIe 交换机是 gen4。有关 PCIe 规格，请参见[此](../../../network#pcie)。
 
-Since most likely you have [NVLink](../../../network#nvlink) connecting the GPUs to each other, this shouldn't matter for GPU to GPU comms, but it'd slow down any data movement between the GPU and the host, as the data speed is limited by the speed of the slowest link.
+由于您很可能使用 [NVLink](../../../network#nvlink) 将 GPU 相互连接，这不应该影响 GPU 到 GPU 的通信，但它会减慢 GPU 和主机之间的任何数据移动，因为数据速度受最慢链接速度的限制。
 
 
 
-## How to check error counters of NVLink links
+## 如何检查 NVLink 链接的错误计数器
 
-If you're concerned your NVLink malfunctions you can check its error counters:
+如果您担心您的 NVLink 出现故障，可以检查其错误计数器：
 ```
 $ nvidia-smi nvlink -e
 GPU 0: NVIDIA H100 80GB HBM3 (UUID: GPU-abcdefab-cdef-abdc-abcd-abababababab)
@@ -300,7 +300,7 @@ GPU 0: NVIDIA H100 80GB HBM3 (UUID: GPU-abcdefab-cdef-abdc-abcd-abababababab)
          Link 17: CRC Errors: 0
 ```
 
-Another useful command is:
+另一个有用的命令是：
 ```
 $ nvidia-smi nvlink --status
 GPU 0: NVIDIA H100 80GB HBM3 (UUID: GPU-abcdefab-cdef-abdc-abcd-abababababab)
@@ -308,14 +308,14 @@ GPU 0: NVIDIA H100 80GB HBM3 (UUID: GPU-abcdefab-cdef-abdc-abcd-abababababab)
          [...]
          Link 17: 26.562 GB/s
 ```
-this one tells you the current speed of each link
+这个告诉你每个链接的当前速度
 
-Run `nvidia-smi nvlink -h` to discover more features (reporting, resetting counters, etc.).
+运行 `nvidia-smi nvlink -h` 以发现更多功能（报告、重置计数器等）。
 
 
-## How to detect if a node is missing GPUs
+## 如何检测节点是否缺少 GPU
 
-If you got a new VM, there are odd cases where there is less than expected number of GPUs. Here is how you can quickly test you have got 8 of them:
+如果您获得了一个新的虚拟机，在某些奇怪的情况下，GPU 数量会少于预期。以下是您可以快速测试是否有 8 个 GPU 的方法：
 
 ```
 cat << 'EOT' >> test-gpu-count.sh
@@ -324,25 +324,25 @@ cat << 'EOT' >> test-gpu-count.sh
 set -e
 
 # test the node has 8 gpus
-test $(nvidia-smi -q | grep UUID | wc -l) != 8 && echo "broken node: less than 8 gpus" && false
+test $(nvidia-smi -q | grep UUID | wc -l) != 8 && echo "坏掉的节点：少于 8 个 gpu" && false
 EOT
 ```
-and then:
+然后：
 
 ```
 bash test-gpu-count.sh
 ```
 
 
-## How to detect if you get the same broken node again and again
+## 如何检测是否一次又一次地得到同一个坏掉的节点
 
-This is mostly relevant to cloud users who rent GPU nodes.
+这主要与租用 GPU 节点的云用户有关。
 
-So you launched a new virtual machine and discovered it has one or more broken NVIDIA GPUs. You discarded it and launched a new and the GPUs are broken again.
+所以你启动了一台新的虚拟机，发现它有一个或多个坏掉的 NVIDIA GPU。你丢弃了它，然后又启动了一台新的，结果 GPU 又坏了。
 
-Chances are that you're getting the same node with the same broken GPUs. Here is how you can know that.
+很有可能你得到的是同一个节点，上面有同样的坏 GPU。以下是你如何知道的方法。
 
-Before discarding the current node, run and log:
+在丢弃当前节点之前，运行并记录：
 
 ```
 $ nvidia-smi -q | grep UUID
@@ -356,45 +356,45 @@ $ nvidia-smi -q | grep UUID
     GPU UUID                              : GPU-52c408aa-3982-baa3-f83d-27d047dd7653
 ```
 
-These UUIDs are unique to each GPU.
+这些 UUID 对于每个 GPU 都是唯一的。
 
-When you then re-created your VM, run this command again - if the UUIDs are the same - you know you have the same broken GPUs.
+当你重新创建你的虚拟机时，再次运行这个命令——如果 UUID 相同——你就知道你得到了相同的坏 GPU。
 
-To automate this process so that you always have this data as it'd be too late if you already rebooted the VM, add somewhere in your startup process this:
+为了自动化这个过程，以便您始终拥有此数据，因为如果您已经重新启动了虚拟机就为时已晚，请在您的启动过程中的某个地方添加以下内容：
 
 ```
 nvidia-smi -q | grep UUID > nvidia-uuids.$(hostname).$(date '+%Y-%m-%d-%H:%M').txt
 ```
 
-You'd want to save the log file on some persistent filesystem for it to survive reboot. If you do not have one make it local and immediately copy to the cloud. That way it'll always be there when you need it.
+您需要将日志文件保存在某个持久的文件系统上，以便在重新启动后仍然存在。如果您没有，请将其本地保存并立即复制到云端。这样，当您需要它时，它就总是在那里。
 
-Sometimes just rebooting the node will get new hardware. In some situations you get new hardware on almost every reboot, in other situations this doesn't happen. And this behavior may change from one provider to another.
+有时，仅重新启动节点就会获得新的硬件。在某些情况下，您几乎每次重新启动都会获得新的硬件，而在其他情况下则不会发生这种情况。并且这种行为可能因提供商而异。
 
-If you keep on getting the same broken node - one trick to overcoming this is allocating a new VM, while holding the broken VM running and when the new VM is running - discarding the broken one. That way you will surely get new GPUs - except there is no guarantee they won't be broken as well. If the use case fits consider getting a static cluster where it's much easier to keep the good hardware.
+如果你一直得到同一个坏掉的节点——一个克服这个问题的技巧是，在保持坏掉的虚拟机运行的同时分配一个新的虚拟机，当新的虚拟机运行时——丢弃坏掉的那个。这样你肯定会得到新的 GPU——只是不能保证它们也不会坏掉。如果用例合适，可以考虑使用静态集群，这样更容易保持硬件的良好状态。
 
-This method is extra-crucial for when GPUs don't fail right away but after some use so it is non-trivial to see that there is a problem. Even if you reported this node to the cloud provider the technician may not notice the problem right away and put the bad node back into circulation. So if you're not using a static cluster and tend to get random VMs on demand you may want to keep a log of bad UUIDs and know you have got a lemon immediately and not 10 hours into the node's use.
+这种方法对于 GPU 不会立即失效而是在使用一段时间后才失效的情况尤其重要，因此很难发现问题。即使您向云提供商报告了此节点，技术人员也可能不会立即注意到问题并将坏节点重新投入使用。因此，如果您不使用静态集群并且倾向于按需获取随机虚拟机，您可能需要保留坏 UUID 的日志，以便立即知道您得到了一个次品，而不是在使用该节点 10 小时后才发现。
 
-Cloud providers usually have a mechanism of reporting bad nodes. Therefore other than discarding a bad node, it'd help yourself and other users to report bad nodes. Since most of the time users just discard the bad nodes, the next user is going to get them. I have seen users getting a very high percentage of bad nodes in some situations.
+云提供商通常有一个报告坏节点的机制。因此，除了丢弃坏节点之外，报告坏节点也有助于您自己和其他用户。因为大多数时候用户只是丢弃坏节点，下一个用户就会得到它们。我见过在某些情况下用户得到坏节点的比例非常高。
 
 
-## How to get the real GPU utilization metrics
+## 如何获取真实的 GPU 利用率指标
 
-As explained [here](https://arthurchiao.art/blog/understanding-gpu-performance/) the `Volatile GPU-Util` column in the `nvidia-smi` output isn't really telling you the GPU Utilization. What it's telling you is the percentage of time during which one or more kernels were executing on the GPU. It's not telling you whether a single SM is being used or all of them. So even if you run a tiny `matmul` all the time, you may get a a very high gpu util, while most of the GPU isn't doing anything.
+正如[这里](https://arthurchiao.art/blog/understanding-gpu-performance/)所解释的，`nvidia-smi` 输出中的 `Volatile GPU-Util` 列并不能真正告诉您 GPU 的利用率。它告诉您的是一个或多个内核在 GPU 上执行的时间百分比。它没有告诉您是正在使用单个 SM 还是所有 SM。因此，即使您一直运行一个微小的 `matmul`，您也可能会得到一个非常高的 GPU 利用率，而 GPU 的大部分都没有做任何事情。
 
-footnote: I have seen GPU util column showing 100% on all gpus when one GPU would stop responding and then whole machinery was blocked waiting for that gpu to respond. Which is how I discovered that it couldn't be showing the real GPU utilization in the first place.
+脚注：我曾见过在一个 GPU 停止响应，然后整个机器都因等待该 GPU 响应而被阻塞时，所有 GPU 的 GPU 利用率列都显示 100%。这就是我发现它一开始就不可能显示真实 GPU 利用率的原因。
 
-What you want to measure instead is GPU's utilization of the available capacity, otherwise known as "saturation". Alas, this information isn't provided by `nvidia-smi`. In order to get this information you need to install [dcgm-exporter](https://github.com/NVIDIA/dcgm-exporter) (which in turn currently requires a recent golang and DCGM (`datacenter-gpu-manager`) and a root access).
+您真正想测量的是 GPU 对可用容量的利用率，也称为"饱和度"。可惜的是，`nvidia-smi` 并不提供此信息。为了获得此信息，您需要安装 [dcgm-exporter](https://github.com/NVIDIA/dcgm-exporter)（它又需要一个最新的 golang 和 DCGM (`datacenter-gpu-manager`) 以及 root 权限）。
 
-Please note that this tool works only high-end data center NVIDIA GPUs, so if you have a consumer level GPU it won't work.
+请注意，此工具仅适用于高端数据中心 NVIDIA GPU，因此如果您有消费级 GPU，它将无法工作。
 
-After installing the prerequisites I built the tool:
+安装完先决条件后，我构建了该工具：
 ```
 git clone https://github.com/NVIDIA/dcgm-exporter.git
 cd dcgm-exporter
 make binary
 ```
 
-And then I was able to get the "real" utilization metrics described in the article with this `dcgm-exporter` config file:
+然后，我能够通过这个 `dcgm-exporter` 配置文件获取文章中描述的"真实"利用率指标：
 
 ```
 $ cat << EOT > dcp-metrics-custom.csv
@@ -405,7 +405,7 @@ DCGM_FI_PROF_PIPE_FP32_ACTIVE,   gauge, Ratio of cycles the fp32 pipes are activ
 EOT
 ```
 
-Then I launched the daemon (root is required):
+然后我启动了守护进程（需要 root 权限）：
 ```
 $ sudo cmd/dcgm-exporter/dcgm-exporter -c 500 -f dcp-metrics-custom.csv
 [...]
@@ -413,23 +413,23 @@ INFO[0000] Starting webserver
 INFO[0000] Listening on                                  address="[::]:9400"
 ```
 
-`-c 500` refreshes every 0.5sec
+`-c 500` 每 0.5 秒刷新一次
 
-and now I was able poll it via:
+现在我可以通过以下方式轮询它：
 ```
 watch -n 0.5 "curl http://localhost:9400/metrics"
 ```
-by running it in one console, and launching a GPU workload in another console. The last column of the output is the utilization of these metrics (where `1.0 == 100%`).
+通过在一个控制台中运行它，并在另一个控制台中启动 GPU 工作负载。输出的最后一列是这些指标的利用率（其中 `1.0 == 100%`）。
 
-`etc/dcp-metrics-included.csv` from the repo contains all the available metrics, so you can add more metrics.
+仓库中的 `etc/dcp-metrics-included.csv` 包含所有可用的指标，因此您可以添加更多指标。
 
-This is a quick way of doing that, but the intention is to use it with [Prometheus](https://prometheus.io/) which will give you nice charts. E.g. the article included an example where you can see the SM occupancy, Tensor core, FP16 and FP32 Core utilization in the second row of the charts:
+这是一种快速的方法，但其意图是与 [Prometheus](https://prometheus.io/) 一起使用，它会给你漂亮的图表。例如，文章中包含一个示例，您可以在图表的第二行看到 SM 占用率、Tensor 核、FP16 和 FP32 核的利用率：
 
 ![dcgm-metrics](images/dcgm-metrics.png)
 
-([source](https://arthurchiao.art/blog/understanding-gpu-performance/))
+([来源](https://arthurchiao.art/blog/understanding-gpu-performance/))
 
-For completion here is an example from the same article showing a 100% gpu util with a CUDA kernel that is doing absolutely nothing compute-wise other than occupying a single Streaming Multiprocessor (SM):
+为了完整起见，这里有一个来自同一篇文章的例子，它展示了一个 CUDA 内核在计算方面除了占用一个流式多处理器 (SM) 之外什么也没做，但 GPU 利用率却达到了 100%：
 
 ```
 $ cat << EOT > 1_sm_kernel.cu
@@ -444,15 +444,15 @@ int main() {
 EOT
 ```
 
-Let's compile it:
+我们来编译它：
 ```
 nvcc 1_sm_kernel.cu -o 1_sm_kernel
 ```
-And now run it in console A:
+现在在控制台 A 中运行它：
 ```
 $ ./1_sm_kernel
 ```
-and in console B:
+在控制台 B 中：
 ```
 $ nvidia-smi
 Tue Oct  8 09:49:34 2024
@@ -468,4 +468,4 @@ Tue Oct  8 09:49:34 2024
 |                                         |                        |             Disabled |
 ```
 
-You can see the `100%` GPU-Util. So here 1 SM is used whereas A100-80GB PCIe has 132 SMs! And it's not even doing any compute as it just runs an infinite loop of doing nothing.
+您可以看到 `100%` 的 GPU 利用率。所以这里使用了 1 个 SM，而 A100-80GB PCIe 有 132 个 SM！而且它甚至没有进行任何计算，只是运行一个无限循环，什么也不做。

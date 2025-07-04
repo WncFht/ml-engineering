@@ -51,10 +51,10 @@ config.update(dict(
     d_model=64,
     d_ff=256,
 ))
-print("new config", config)
+print("新配置", config)
 
 very_small_model = MT5ForConditionalGeneration(config)
-print(f"num of params {very_small_model.num_parameters()}")
+print(f"参数数量 {very_small_model.num_parameters()}")
 
 very_small_model.save_pretrained(mname_very_small)
 ```
@@ -139,7 +139,7 @@ vocab_keep_items = 5000
 mname = "microsoft/deberta-base"
 
 tokenizer = AutoTokenizer.from_pretrained(mname, use_fast=True)
-assert tokenizer.is_fast, "This only works for fast tokenizers."
+assert tokenizer.is_fast, "这只适用于快速分词器。"
 tokenizer_json = json.loads(tokenizer._tokenizer.to_str())
 vocab = tokenizer_json["model"]["vocab"]
 if tokenizer_json["model"]["type"] == "BPE":
@@ -157,7 +157,7 @@ elif tokenizer_json["model"]["type"] == "Unigram":
 elif tokenizer_json["model"]["type"] == "WordPiece" or tokenizer_json["model"]["type"] == "WordLevel":
     new_vocab = { token: i for token, i in vocab.items() if i < vocab_keep_items }
 else:
-    raise ValueError(f"don't know how to handle {tokenizer_json['model']['type']}")
+    raise ValueError(f"不知道如何处理 {tokenizer_json['model']['type']}")
 tokenizer_json["model"]["vocab"] = new_vocab
 tokenizer._tokenizer = Tokenizer.from_str(json.dumps(tokenizer_json))
 tokenizer.save_pretrained(".")
@@ -180,13 +180,13 @@ if "gpt2" in mname:
 ```
 from transformers import AutoTokenizer
 
-mname = "microsoft/deberta-base" # or any checkpoint that has a fast tokenizer.
+mname = "microsoft/deberta-base" # 或任何具有快速分词器的检查点。
 vocab_keep_items = 5000
 
 tokenizer = AutoTokenizer.from_pretrained(mname)
-assert tokenizer.is_fast, "This only works for fast tokenizers."
+assert tokenizer.is_fast, "这只适用于快速分词器。"
 tokenizer.save_pretrained("big-tokenizer")
-# Should be a generator of list of texts.
+# 应该是一个文本列表的生成器。
 training_corpus = [
     ["This is the first sentence.", "This is the second one."],
     ["This sentence (contains #) over symbols and numbers 12 3.", "But not this one."],
@@ -203,9 +203,9 @@ mname = "microsoft/deberta-base"
 vocab_keep_items = 5000
 
 tokenizer = AutoTokenizer.from_pretrained(mname)
-assert tokenizer.is_fast, "This only works for fast tokenizers."
+assert tokenizer.is_fast, "这只适用于快速分词器。"
 vocab = tokenizer.get_vocab()
-training_corpus = [ vocab.keys() ] # Should be a generator of list of texts.
+training_corpus = [ vocab.keys() ] # 应该是一个文本列表的生成器。
 new_tokenizer = tokenizer.train_new_from_iterator(training_corpus, vocab_size=vocab_keep_items)
 new_tokenizer.save_pretrained("small-tokenizer")
 ```

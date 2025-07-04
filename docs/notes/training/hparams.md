@@ -5,7 +5,7 @@ permalink: /notes/notes/z5fo289c/
 ---
 # 选择训练超参数和模型初始化
 
-找到一个好的超参数和模型初始化入门集的最简单方法是从一个你知道已经成功的类似训练中“窃取”它。这里有一个[公开可用的训练 LLM/VLM 日志集合](../resources/README.md#publicly-available-training-llmvlm-logbooks)来帮助你入门。另一个常见的来源是论文，如果它们披露了这些信息。如果作者没有公布这些细节，你也可以尝试联系他们索取。
+找到一个好的超参数和模型初始化入门集的最简单方法是从一个你知道已经成功的类似训练中"窃取"它。这里有一个[公开可用的训练 LLM/VLM 日志集合](../resources/README.md#publicly-available-training-llmvlm-logbooks)来帮助你入门。另一个常见的来源是论文，如果它们披露了这些信息。如果作者没有公布这些细节，你也可以尝试联系他们索取。
 
 ## 术语表
 

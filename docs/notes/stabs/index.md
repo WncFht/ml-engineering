@@ -5,4 +5,4 @@ permalink: /notes/notes/o5qa4elq/
 ---
 # Stabs
 
-Some very early notes on various topics, not meant for reading or fixing. Please ignore this sub-dir.
+一些关于各种主题的非常早期的笔记，不适合阅读或修复。请忽略此子目录。
